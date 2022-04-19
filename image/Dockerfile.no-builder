@@ -1,0 +1,63 @@
+# ejabberd
+################
+### This Dockerfile is currently not maintained. !!!
+################
+FROM docker.io/debian:bullseye-slim as builder
+
+ARG EJABBERD_TAG=21.12
+ARG EJABBERD_BUILDER_TAG=21.12-2_
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US \
+    LC_ALL=en_US.UTF-8 \
+    DEBIAN_FRONTEND=noninteractive \
+    BUILDER_DOWNLOAD_URL=https://ejabberd.messaging.one/download/package
+
+RUN if uname -m | grep aarch64; then \
+	ARCH=arm64; \
+    else \
+	ARCH=amd64; \
+    fi \
+    && apt-get update \
+    && apt-get install -y wget locales \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen \
+    && wget $BUILDER_DOWNLOAD_URL/ejabberd_$EJABBERD_BUILDER_TAG$ARCH.deb \
+    && dpkg -i ejabberd_$EJABBERD_BUILDER_TAG$ARCH.deb
+
+FROM docker.io/debian:bullseye-slim as ejabberd
+
+ENV EJABBERD_TAG=21.12 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US \
+    LC_ALL=en_US.UTF-8 \
+    PATH_EJABBERD_HOME=/opt/ejabberd \
+    PATH_FILESERVER=/opt/ejabberd/files \
+    PATH_MODULE_CONFIG=/opt/ejabberd/conf/config-modules \
+    PATH_STARTUP_SCRIPTS=/opt/ejabberd/startup-scripts \
+    PATH_TLS_CERTIFICATES=/opt/ejabberd/tls \
+    PATH_UPLOAD=/opt/ejabberd/upload
+
+COPY --from=builder /opt /opt
+COPY rootfs /
+
+RUN set -x \
+  && chown -R 999:999 /opt/ejabberd \
+  && addgroup --gid 999 ejabberd \
+  && adduser --uid 999 --gid 999 --disabled-password --gecos "" --home /opt/ejabberd ejabberd \
+  && apt-get update \
+  && apt-get install -y openssl locales \
+  && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+  && locale-gen \
+  && chmod 555 $PATH_STARTUP_SCRIPTS/* /opt/ejabberd-$EJABBERD_TAG/bin/* \
+  && mv $PATH_EJABBERD_HOME/conf/ejabberd.yml $PATH_EJABBERD_HOME/conf/ejabberd.yml.template \
+  && ln -s /opt/ejabberd-$EJABBERD_TAG/bin/ejabberdctl /usr/bin/ejabberdctl
+
+USER ejabberd
+
+WORKDIR /opt/ejabberd
+
+EXPOSE 5222 5223 5269 5270 5280 5443
+
+VOLUME $PATH_EJABBERD_HOME/conf $PATH_EJABBERD_HOME/data $PATH_EJABBERD_HOME/files $PATH_EJABBERD_HOME/upload $PATH_EJABBERD_HOME/tls
+
+CMD ["/opt/ejabberd/startup-scripts/run.sh"]

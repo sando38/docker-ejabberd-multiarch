@@ -1,0 +1,30 @@
+version: "3.7"
+
+services:
+  ejabberd:
+    restart: unless-stopped
+    hostname: ejabberd
+    container_name: ejabberd
+    image: sando38/docker-ejabberd-multiarch
+    user: 999:999
+    ports:
+      - 80:5280 # http
+      # - 3478:3478 # STUN/TURN non-tls
+      # - 3478:3478/udp # STUN/TURN non-tls
+      - 5222:5222 # xmpp-client
+      # - 5223:5223 # xmpp-client TLS
+      # - 5269:5269 # xmpp-server
+      # - 5270:5270 # xmpp-server TLS
+      - 5443:5443 # https
+      # - 5349:5349 # STUN/TURN TLS
+      # - 49152-49300:49152-49300/udp # TURN range
+    env_file:
+      - ejabberd.env
+    # environment:
+    #   - ACME_ENABLED=false # default 'auto'
+    # volumes:
+    #  - /path/to/acme-certs/:/home/ejabberd/tls:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
