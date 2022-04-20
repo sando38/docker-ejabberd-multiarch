@@ -72,11 +72,11 @@ It is advised to make some data persistent. Those can be mounted here:
 
 ```
 volumes:
-  - /path/to/configfiles:/home/ejabberd/conf         # for configuration files
-  - /path/to/database:/home/ejabberd/data            # mnesia database
-  - /path/to/fileserver/docs:/home/ejabberd/files    # for HTTP fileserver functionality
-  - /path/to/cert-files:/home/ejabberd/tls           # for tls certicates
-  - /path/to/upload/files:/home/ejabberd/upload      # for HTTP upload functionality
+  - /path/to/configfiles:/home/ejabberd/etc/ejabberd    # for configuration files
+  - /path/to/database:/home/ejabberd/var/lib/ejabberd   # mnesia database
+  - /path/to/fileserver/docs:/home/ejabberd/files       # for HTTP fileserver functionality
+  - /path/to/cert-files:/home/ejabberd/tls              # for tls certicates
+  - /path/to/upload/files:/home/ejabberd/upload         # for HTTP upload functionality
 ```
 
 ## Parameters to configure ejabberd
