@@ -52,7 +52,7 @@ cat >> $CONFIGFILE <<EOF;
 ###.  =================
 ###'  LOGGING
 
-loglevel: ${LOGLEVEL:-4} # 3 = warning, 4 = info
+loglevel: ${LOGLEVEL:-info} # none | emergency | alert | critical | error | warning | notice | info | debug
 log_rotate_size: 10485760
 log_rotate_count: 1
 hide_sensitive_log_data: ${HIDE_SENSITIVE_LOG_DATA:-false}
@@ -988,7 +988,7 @@ EOF
     cat > $PATH_MODULE_CONFIG/mod_http_fileserver.yml <<EOF;
 modules:
   mod_http_fileserver:
-    accesslog: $PATH_EJABBERD_HOME/logs/access.log # default no access log
+    accesslog: $PATH_EJABBERD_HOME/var/log/ejabberd/access.log # default no access log
     docroot: $PATH_FILESERVER
 EOF
   fi
