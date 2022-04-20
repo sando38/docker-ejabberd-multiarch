@@ -34,11 +34,11 @@ RUN set -x \
         gsfonts \
         imagemagick \
         inotify-tools \
+        ldnsutils \
         libgd3 \
         libwebp6 \
         libyaml-0-2 \
         locales \
-        ldnsutils \
         openssl \
     && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && locale-gen \
@@ -52,10 +52,10 @@ RUN set -x \
       --enable-group=ejabberd \
       --enable-full-xml \
   #    --enable-latest-deps \
-  #    --enable-mssql \
+      --enable-mssql \
       --enable-mysql \
       --enable-new-sql-schema \
-  #    --enable-odbc \
+      --enable-odbc \
       --disable-pam \
       --enable-pgsql \
       --enable-redis \
@@ -72,8 +72,7 @@ COPY rootfs /
 
 FROM docker.io/debian:bullseye-slim as ejabberd
 
-ENV EJABBERD_TAG=21.12 \
-    LANG=en_US.UTF-8 \
+ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US \
     LC_ALL=en_US.UTF-8 \
     PATH_EJABBERD_HOME=/home/ejabberd \
@@ -89,10 +88,19 @@ RUN set -x \
   && addgroup --gid 999 ejabberd \
   && adduser --uid 999 --gid 999 --disabled-password --gecos "" --home $PATH_EJABBERD_HOME ejabberd \
   && apt-get update \
-  && apt-get install -y openssl locales libyaml-0-2 libxml-rpc-fast-perl \
+  && apt-get install -y --no-install-recommends --fix-missing \
+      ca-certificates \
+      gsfonts \
+#      imagemagick \
+      inotify-tools \
+      ldnsutils \
+      libgd3 \
+      libwebp6 \
+      libyaml-0-2 \
+      locales \
+      openssl \
   && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
   && locale-gen \
-  && mkdir -p $PATH_TLS_CERTIFICATES $PATH_UPLOAD $PATH_MODULE_CONFIG $PATH_STARTUP_SCRIPTS $PATH_FILESERVER \
   && tar -xzf $PATH_EJABBERD_HOME/ejabberd-*.tar.gz -C $PATH_EJABBERD_HOME \
   && rm -rf $PATH_EJABBERD_HOME/ejabberd-*.tar.gz \
   && chown -R 999:999 $PATH_EJABBERD_HOME \
@@ -106,6 +114,11 @@ WORKDIR $PATH_EJABBERD_HOME
 
 EXPOSE 5222 5223 5269 5270 5280 5443
 
-VOLUME $PATH_EJABBERD_HOME/conf $PATH_EJABBERD_HOME/data $PATH_EJABBERD_HOME/files $PATH_EJABBERD_HOME/upload $PATH_EJABBERD_HOME/tls
+VOLUME $PATH_EJABBERD_HOME/etc/ejabberd $PATH_FILESERVER $PATH_TLS_CERTIFICATES $PATH_UPLOAD
 
-CMD ["/home/ejabberd/startup-scripts/run.sh"]
+LABEL org.opencontainers.image.description="ejabberd image, built for multiple architectures and with startup configuration script" \
+      org.opencontainers.image.version="${EJABBERD_TAG}" \
+      org.opencontainers.image.authors="Sando <sandomir@tutanota.com.com>" \
+      org.opencontainers.image.source="https://github.com/sando38/docker-ejabberd-multiarch"
+
+CMD ["startup-scripts/run.sh"]
