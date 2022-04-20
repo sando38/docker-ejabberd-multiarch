@@ -9,6 +9,8 @@ This is a multi-arch [ejabberd](https://docs.ejabberd.im/ "ejabberd") docker ima
 
 and is based on Debian Bullseye Slim.
 
+[Docker Hub link](https://hub.docker.com/r/sando38/docker-ejabberd-multiarch)
+
 There may be further architectures supported in future. If you need another, raise an issue on github.
 
 The docker files, etc. are available on [github](https://github.com/sando38/docker-ejabberd-multiarch).
