@@ -73,12 +73,16 @@ It is advised to make some data persistent. Those can be mounted here:
 
 ```
 volumes:
-  - /path/to/configfiles:/home/ejabberd/etc/ejabberd    # for configuration files
+  - /path/to/configfiles:/home/ejabberd/etc/ejabberd    # for (custom) configuration files
   - /path/to/database:/home/ejabberd/var/lib/ejabberd   # mnesia database & acme client certificates
   - /path/to/fileserver/docs:/home/ejabberd/files       # for HTTP fileserver functionality
   - /path/to/cert-files:/home/ejabberd/tls              # for custom tls certicates
   - /path/to/upload/files:/home/ejabberd/upload         # for HTTP upload functionality
 ```
+
+NOTE: if you mount a docker volume for the configuration files, those will be persistent and the startup script is not going to be applied at next startup. Therefore, manual changes must occur within the docker volume and the respective configuration files.
+
+To trigger the startup script, at least the file `ejabberd.yml` must be deleted/ renamed from the docker volume.
 
 ## Parameters to configure ejabberd
 
