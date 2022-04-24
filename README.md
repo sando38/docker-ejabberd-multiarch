@@ -49,12 +49,13 @@ Inspect the running container with
 
 The image has several tags. Future tags will potentially support more architectures. To go with the newest image, just use the `latest` tag.
 
-`vXX-XX` represents the official ejabberd release, `-vX` is the version of the Docker image, which rise in number, e.g. due to bug fixes, enhancements, etc.
+`vXX-YY` represents the official ejabberd release, `-vX.Y.Z` is the version of the Docker image, which rises in number, e.g. due to bug fixes, enhancements, etc.
 
 | TAGS  | Description  | Architectures  |
 | ------------ | ------------ | ------------ |
 | latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
-| v21-12-v2  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/)  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
+| v21-12-v2.0.1  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.1) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
+| v21-12-v2.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.0)  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 
 
 ## Configure the image
