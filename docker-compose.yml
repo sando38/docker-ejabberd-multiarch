@@ -22,9 +22,20 @@ services:
       - ejabberd.env
     # environment:
     #   - ACME_ENABLED=false # default 'auto'
-    # volumes:
-    #  - /path/to/acme-certs/:/home/ejabberd/tls:ro
+    volumes: # directories must be own by ejabberd user 999:999
+      - config:/home/ejabberd/etc/ejabberd     # for configuration files
+      - data:/home/ejabberd/var/lib/ejabberd   # mnesia database & acme client certificates
+      - http-files:/home/ejabberd/files        # for HTTP fileserver functionality
+      - http-upload:/home/ejabberd/upload      # for HTTP upload functionality
+      - tls:/home/ejabberd/tls                 # for custom tls certicates
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+volumes:
+  config:
+  data:
+  http-files:
+  http-upload:
+  tls:
