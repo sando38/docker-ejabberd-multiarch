@@ -464,6 +464,8 @@ Furthermore, the startup script can load additional modules from [ejabberd contr
 
 To activate the ejabberd contributions module `mod_cron`, e.g. the parameter `INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME=mod_cron` is set and the configfile `mod_cron.yml` is mounted.
 
+NOTE: if you use/ mount a custom `ejabberd.yml`, the ejabberd contribution modules must not be referenced in the `ejabberd.yml`.
+
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME  | If parameter is set, then module will be added to the configuration file. To make it function, a module configuration file must be mounted at the mentioned path above with the the following name: `$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME.yml` , e.g. `mod_cron.yml`  |   |
