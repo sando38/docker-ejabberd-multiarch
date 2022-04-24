@@ -33,9 +33,6 @@ else
     echo "starting ejabberd in foreground mode"
 fi
 
-# clean unused ejabberd contribution modules
-#rm -rf $PATH_EJABBERD_HOME/.ejabberd-contrib
-
 # Run processes
 $PATH_EJABBERD_HOME/bin/ejabberdctl foreground
 sleep infinity
