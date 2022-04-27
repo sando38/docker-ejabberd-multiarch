@@ -4,6 +4,9 @@ set -x
 #sed -i -e "s/<APC_SHM_SIZE>/$APC_SHM_SIZE/g" /usr/local/etc/php/conf.d/apcu.ini \
 #       -e "s/<MEMORY_LIMIT>/$MEMORY_LIMIT/g" /usr/local/etc/php-fpm.conf
 
+# Set ejabberd node name
+sed -i -e "s/#ERLANG_NODE=ejabberd@localhost/ERLANG_NODE=ejabberd@$(hostname -s)/g" $PATH_EJABBERD_HOME/etc/ejabberd/ejabberdctl.cfg
+
 # If new install, run setup
 if [ ! -f $PATH_EJABBERD_HOME/etc/ejabberd/ejabberd.yml ]; then
     echo "no configuration found, creating initial configuration from environment variables"
