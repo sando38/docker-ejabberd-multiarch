@@ -1,15 +1,13 @@
 #!/bin/sh
-set -x
-## DEFAULTS
-if [ -f "${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${DHPARAM_FILE_NAME:-dh.pem}" ]; then
-  echo "dhparam file exists, using existing file"
-else
-  echo "generating dh param file with keysize ${DHPARAM_KEYSIZE:-2048}"
-  openssl dhparam -out ${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${DHPARAM_FILE_NAME:-dh.pem} ${DHPARAM_KEYSIZE:-2048}
-fi
+#set -x
 # Create ejabberd configuration file
 CONFIGPATH=$PATH_EJABBERD_HOME/etc/ejabberd
 CONFIGFILE=$CONFIGPATH/ejabberd.yml
+echo ">>> ======================================================================="
+echo ">>>          Start generating ejabberd.yml configuration file"
+echo ">>> ======================================================================="
+echo ">>> Setting virtual hosts, logging parameters, default language"
+echo ">>> "
 # virtual hosts
 cat > $CONFIGFILE <<EOF;
 ###
@@ -77,7 +75,7 @@ else
   auto: false
 EOF
 fi
-
+echo ">>> Setting ACME client parameters"
 cat >> $CONFIGFILE <<EOF;
   contact: "mailto:${ACME_EMAIL:-name@example.com}"
   ca_url: "${ACME_URL:-https://acme-v02.api.letsencrypt.org/directory}"
@@ -87,6 +85,10 @@ cat >> $CONFIGFILE <<EOF;
 ###'  TLS configuration
 
 EOF
+echo ">>> "
+echo ">>> ======================================================================="
+echo ">>> Setting TLS configuration parameters"
+echo ">>> "
 if ([ ! -z $TLS_KEY_FILE_XMPP_DOMAIN0 ] || [ ! -z $TLS_CRT_FILE_XMPP_DOMAIN0 ]) || ([ ! -z $TLS_KEY_FILE_XMPP_DOMAIN1 ] || [ ! -z $TLS_CRT_FILE_XMPP_DOMAIN1 ]) || ([ ! -z $TLS_KEY_FILE_XMPP_DOMAIN2 ] || [ ! -z $TLS_CRT_FILE_XMPP_DOMAIN2 ]); then
   cat >> $CONFIGFILE <<EOF;
 certfiles:
@@ -110,7 +112,18 @@ if ([ ! -z $TLS_KEY_FILE_XMPP_DOMAIN2 ] || [ ! -z $TLS_CRT_FILE_XMPP_DOMAIN2 ]);
   - ${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${TLS_CRT_FILE_XMPP_DOMAIN2:-fullchain.pem}
 EOF
 fi
-
+## Generating DH PARAM file
+echo ">>> ======================================================================="
+echo ">>> ###' Checking DH PARAM file existence at ${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${DHPARAM_FILE_NAME:-dh.pem}"
+echo ">>> "
+if [ -f "${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${DHPARAM_FILE_NAME:-dh.pem}" ]; then
+  echo ">>> dhparam file exists, using existing file"
+  echo ">>> "
+else
+  echo ">>> generating dh param file with keysize ${DHPARAM_KEYSIZE:-2048}"
+  echo ">>> "
+  openssl dhparam -out ${PATH_TLS_CERTIFICATES:-$PATH_EJABBERD_HOME/tls}/${DHPARAM_FILE_NAME:-dh.pem} ${DHPARAM_KEYSIZE:-2048}
+fi
 cat >> $CONFIGFILE <<EOF;
 
 define_macro:
@@ -148,6 +161,10 @@ EOF
 #
 ### S2S TLS configuration #############################################
 #
+echo ">>> ======================================================================="
+echo ">>> Setting S2S overall configuration parameters"
+echo ">>> "
+
 if [ "${LISTENER_S2S_LEGACY_TLS_ENABLED:-false}" = true ] || [ "${LISTENER_S2S_ENABLED:-false}" = true ]; then
 cat >> $CONFIGFILE <<EOF;
 
@@ -165,6 +182,11 @@ cat >> $CONFIGFILE <<EOF;
 s2s_use_starttls: ${LISTENER_S2S_USE_STARTTLS:-false}
 EOF
 fi
+echo ">>> ======================================================================="
+echo ">>> Define authentication method"
+echo ">>> "
+echo ">>> Using auth_method: ${AUTH_METHOD:-mnesia}"
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 
 ###.  =================
@@ -180,7 +202,10 @@ EOF
 fi
 
 if [ "$AUTH_METHOD" = ldap ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> ======================================================================="
+  echo ">>> Configure LDAP backend"
+  echo ">>> "
+  cat >> $CONFIGFILE <<EOF;
 
 ###.  =================
 ###'  LDAP AUTHENTICATION
@@ -307,7 +332,9 @@ if [ ! -z $LDAP_BACKUP_SERVER_3 ]; then
 EOF
 fi
 fi
-
+echo ">>> ======================================================================="
+echo ">>> Configure ejabberd listeners"
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 
 ###.  ===============
@@ -316,7 +343,7 @@ cat >> $CONFIGFILE <<EOF;
 include_config_file:
   - $CONFIGPATH/c2s.yml
 EOF
-
+echo ">>> Configure ejabberd c2s listener"
 cat >> $CONFIGPATH/c2s.yml <<EOF;
 listen:
   -
@@ -333,7 +360,8 @@ listen:
 EOF
 
 if [ "${LISTENER_C2S_LEGACY_TLS_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd c2s TLS listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/c2s-tls.yml
 EOF
 cat > $CONFIGPATH/c2s-tls.yml <<EOF
@@ -352,7 +380,8 @@ EOF
 fi
 
 if [ "${LISTENER_S2S_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd s2s listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/s2s.yml
 EOF
 cat > $CONFIGPATH/s2s.yml <<EOF
@@ -367,7 +396,8 @@ EOF
 fi
 
 if [ "${LISTENER_S2S_LEGACY_TLS_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd s2s TLS listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/s2s-tls.yml
 EOF
 cat > $CONFIGPATH/s2s-tls.yml <<EOF
@@ -383,7 +413,8 @@ EOF
 fi
 
 if [ "${LISTENER_STUNTURN_TCP_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd STUN/TURN TCP listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/stun-turn-tcp.yml
 EOF
 cat > $CONFIGPATH/stun-turn-tcp.yml <<EOF
@@ -402,7 +433,8 @@ EOF
 fi
 
 if [ "${LISTENER_STUNTURN_UDP_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd STUN/TURN UDP listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/stun-turn-udp.yml
 EOF
 cat > $CONFIGPATH/stun-turn-udp.yml <<EOF
@@ -421,7 +453,8 @@ EOF
 fi
 
 if [ "${LISTENER_STUNSTURNS_TLS_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd STUNS/TURNS listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/stuns-turns.yml
 EOF
 cat > $CONFIGPATH/stuns-turns.yml <<EOF
@@ -441,7 +474,8 @@ EOF
 fi
 
 if [ "${LISTENER_HTTP_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> Configure ejabberd HTTP listener"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/http.yml
 EOF
 cat > $CONFIGPATH/http.yml <<EOF
@@ -457,7 +491,8 @@ EOF
 fi
 # configure admin interface
 if [ "${LISTENER_HTTP_ENABLED:-false}" = true ] || [ "${LISTENER_HTTP_ADMIN_ENABLED:-false}" = true ]; then
-cat >> $CONFIGPATH/http.yml <<EOF
+  echo ">>> Configure ejabberd HTTPS listener"
+  cat >> $CONFIGPATH/http.yml <<EOF
       "/admin": ejabberd_web_admin
 EOF
 fi
@@ -547,24 +582,38 @@ fi
 cat >> $CONFIGFILE <<EOF;
 # additional listeners, e.g. for jitsi video bridge, etc.
 EOF
+if [ ! -z $ADDITIONAL_LISTENER_1_NAME ] || [ ! -z $ADDITIONAL_LISTENER_2_NAME ] || [ ! -z $ADDITIONAL_LISTENER_3_NAME ]; then
+echo ">>> Configure additional listeners"
+echo ">>>"
 if [ ! -z $ADDITIONAL_LISTENER_1_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> define $ADDITIONAL_LISTENER_1_NAME"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/$ADDITIONAL_LISTENER_1_NAME.yml
 EOF
 fi
 if [ ! -z $ADDITIONAL_LISTENER_2_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> define $ADDITIONAL_LISTENER_2_NAME"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/$ADDITIONAL_LISTENER_2_NAME.yml
 EOF
 fi
 if [ ! -z $ADDITIONAL_LISTENER_3_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> define $ADDITIONAL_LISTENER_3_NAME"
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/$ADDITIONAL_LISTENER_3_NAME.yml
 EOF
+fi
 fi
 #
 ### Database configuration #############################################
 #
+echo ">>> "
+echo ">>> ======================================================================="
+echo ">>> Configure database setup"
+echo ">>> "
+echo ">>> use default DB: ${DEFAULT_DB:-mnesia}"
+echo ">>> use default RAM DB: ${DEFAULT_RAM_DB:-mnesia}"
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 
 ###.  ==============
@@ -573,8 +622,10 @@ cat >> $CONFIGFILE <<EOF;
 default_db: ${DEFAULT_DB:-mnesia}
 default_ram_db: ${DEFAULT_RAM_DB:-mnesia}
 EOF
-if [ ! "$DEFAULT_DB" = mnesia ] || [ ! -z $DB_TYPE ] || [ "$DEFAULT_RAM_DB" = sql ]; then
-cat >> $CONFIGFILE <<EOF;
+if [ ! "${DEFAULT_DB:-mnesia}" = mnesia ] || [ ! -z $DB_TYPE ] || [ "$DEFAULT_RAM_DB" = sql ]; then
+  echo ">>> Defining $DB_TYPE backend"
+  echo ">>> "
+  cat >> $CONFIGFILE <<EOF;
 include_config_file:
   - $CONFIGPATH/database.yml
 EOF
@@ -647,7 +698,10 @@ fi
 ### REDIS configuration #############################################
 #
 if [ "$DEFAULT_RAM_DB" = redis ] || [ "$REDIS_ENABLED" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> ======================================================================="
+  echo ">>> Defining $DEFAULT_RAM_DB backend"
+  echo ">>> "
+  cat >> $CONFIGFILE <<EOF;
   - $CONFIGPATH/redis.yml
 EOF
 cat > $CONFIGPATH/redis.yml <<EOF;
@@ -660,7 +714,11 @@ redis_queue_type: ${REDIS_QUEUE_TYPE:-ram}
 redis_connect_timeout: ${REDIS_CONNECT_TIMEOUT:-1}
 EOF
 fi
-
+echo ">>> "
+echo ">>> ======================================================================="
+echo ">>> Defining access control lists, access rules, API permissions,"
+echo ">>> traffic shaper and shaper rules."
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 
 ###.   ====================
@@ -763,6 +821,9 @@ EOF
 #
 ### modules configuration #############################################
 #
+echo ">>> ======================================================================="
+echo ">>> Configuring ejabberd core modules"
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 
 ###.  =======
@@ -775,7 +836,8 @@ EOF
 ### MOD_ADHOC #############################################
 #
 if [ "${MOD_ADHOC_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_adhoc.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_adhoc.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_adhoc.yml ]; then
@@ -789,7 +851,8 @@ fi
 ### MOD_ADMIN_EXTRA #############################################
 #
 if [ "${MOD_ADMIN_EXTRA_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_admin_extra.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_admin_extra.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_admin_extra.yml ]; then
@@ -803,7 +866,8 @@ fi
 ### MOD_ANNOUNCE #############################################
 #
 if [ "${MOD_ANNOUNCE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_announce.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_announce.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_announce.yml ]; then
@@ -818,7 +882,8 @@ fi
 ### MOD_AVATAR #############################################
 #
 if [ "${MOD_AVATAR_ENABLED:-true}" = true ] && [ "${MOD_PUBSUB_ENABLED:-true}" = true ] && [ "${MOD_VCARD_ENABLED:-true}" = true ] && [ "${MOD_VCARD_XUPDATE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_avatar.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_avatar.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_avatar.yml ]; then
@@ -832,7 +897,8 @@ fi
 ### MOD_BLOCKING #############################################
 #
 if [ "${MOD_BLOCKING_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_blocking.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_blocking.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_blocking.yml ]; then
@@ -846,7 +912,8 @@ fi
 ### MOD_BOSH #############################################
 #
 if [ "${LISTENER_HTTPS_BOSH_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_bosh.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_bosh.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_bosh.yml ]; then
@@ -860,7 +927,8 @@ fi
 ### MOD_CAPS #############################################
 #
 if [ "${MOD_CAPS_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_caps.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_caps.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_caps.yml ]; then
@@ -874,7 +942,8 @@ fi
 ### MOD_CARBONCOPY #############################################
 #
 if [ "${MOD_CARBONCOPY_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_carboncopy.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_carboncopy.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_carboncopy.yml ]; then
@@ -888,7 +957,8 @@ fi
 ### MOD_CLIENT_STATE #############################################
 #
 if [ "${MOD_CLIENT_STATE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_client_state.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_client_state.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_client_state.yml ]; then
@@ -902,7 +972,8 @@ fi
 ### MOD_CONFIGURE #############################################
 #
 if [ "${MOD_CONFIGURE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_configure.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_configure.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_configure.yml ]; then
@@ -916,7 +987,8 @@ fi
 ### MOD_CONVERSEJS #############################################
 #
 if [ "${LISTENER_HTTPS_CONVERSEJS_ENABLED:-false}" = true ] && ([ "${LISTENER_HTTPS_BOSH_ENABLED:-true}" = true ] || [ "${LISTENER_HTTPS_WS_ENABLED:-true}" = true ]); then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_conversejs.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_conversejs.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_conversejs.yml ]; then
@@ -939,7 +1011,8 @@ fi
 ### MOD_DISCO #############################################
 #
 if [ "${MOD_DISCO_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_disco.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_disco.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_disco.yml ]; then
@@ -953,7 +1026,8 @@ fi
 ### MOD_FAIL2BAN #############################################
 #
 if [ "${MOD_FAIL2BAN_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_fail2ban.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_fail2ban.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_fail2ban.yml ]; then
@@ -967,7 +1041,8 @@ fi
 ### MOD_HTTP_API #############################################
 #
 if [ "${LISTENER_HTTPS_API_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_http_api.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_http_api.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_http_api.yml ]; then
@@ -981,7 +1056,8 @@ fi
 ### MOD_HTTP_UPLOAD #############################################
 #
 if [ "${LISTENER_HTTPS_FILESERVER_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_http_fileserver.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_http_fileserver.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_http_fileserver.yml ]; then
@@ -997,7 +1073,8 @@ fi
 ### MOD_HTTP_UPLOAD #############################################
 #
 if [ "${LISTENER_HTTPS_UPLOAD_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_http_upload.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_http_upload.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_http_upload.yml ]; then
@@ -1017,7 +1094,8 @@ fi
 ### MOD_LAST #############################################
 #
 if [ "${MOD_LAST_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_last.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_last.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_last.yml ]; then
@@ -1031,7 +1109,8 @@ fi
 ### MOD_MAM #############################################
 #
 if [ "${MOD_MAM_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_mam.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_mam.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_mam.yml ]; then
@@ -1047,7 +1126,8 @@ fi
 ### MOD_MQTT #############################################
 #
 if [ "${LISTENER_MQTT_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_mqtt.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_mqtt.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_mqtt.yml ]; then
@@ -1061,7 +1141,8 @@ fi
 ### MOD_MUC #############################################
 #
 if [ "${MOD_MUC_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_muc.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_muc.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_muc.yml ]; then
@@ -1085,7 +1166,8 @@ fi
 ### MOD_MUC_ADMIN #############################################
 #
 if [ "${MOD_MUC_ADMIN_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_muc_admin.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_muc_admin.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_muc_admin.yml ]; then
@@ -1099,7 +1181,8 @@ fi
 ### MOD_OFFLINE #############################################
 #
 if [ "${MOD_OFFLINE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_offline.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_offline.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_offline.yml ]; then
@@ -1114,7 +1197,8 @@ fi
 ### MOD_PING #############################################
 #
 if [ "${MOD_PING_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_ping.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_ping.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_ping.yml ]; then
@@ -1128,7 +1212,8 @@ fi
 ### MOD_PRIVACY #############################################
 #
 if [ "${MOD_PRIVACY_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_privacy.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_privacy.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_privacy.yml ]; then
@@ -1142,7 +1227,8 @@ fi
 ### MOD_PRIVATE #############################################
 #
 if [ "${MOD_PRIVATE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_private.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_private.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_private.yml ]; then
@@ -1156,7 +1242,8 @@ fi
 ### MOD_PROXY65 #############################################
 #
 if [ "${MOD_PROXY65_ENABLED:-false}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_proxy65.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_proxy65.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_proxy65.yml ]; then
@@ -1172,7 +1259,8 @@ fi
 ### MOD_PUBSUB #############################################
 #
 if [ "${MOD_PUBSUB_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_pubsub.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_pubsub.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_pubsub.yml ]; then
@@ -1194,7 +1282,8 @@ fi
 ### MOD_PUSH #############################################
 #
 if [ "${MOD_PUSH_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_push.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_push.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_push.yml ]; then
@@ -1208,7 +1297,8 @@ fi
 ### MOD_PUSH_KEEPALIVE #############################################
 #
 if [ "${MOD_PUSH_KEEPALIVE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_push_keepalive.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_push_keepalive.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_push_keepalive.yml ]; then
@@ -1222,7 +1312,8 @@ fi
 ### MOD_REGISTER #############################################
 #
 if [ "${MOD_REGISTER_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_register.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_register.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_register.yml ]; then
@@ -1242,7 +1333,8 @@ fi
 ### MOD_ROSTER #############################################
 #
 if [ "${MOD_ROSTER_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_roster.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_roster.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_roster.yml ]; then
@@ -1257,7 +1349,8 @@ fi
 ### MOD_S2S_DIALBACK #############################################
 #
 if [ "${MOD_S2S_DIALBACK_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_s2s_dialback.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_s2s_dialback.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_s2s_dialback.yml ]; then
@@ -1271,7 +1364,8 @@ fi
 ### MOD_SHARED_ROSTER #############################################
 #
 if [ "${MOD_SHARED_ROSTER_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_shared_roster.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_shared_roster.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_shared_roster.yml ]; then
@@ -1285,7 +1379,8 @@ fi
 ### MOD_STREAM_MGMT #############################################
 #
 if [ "${MOD_STREAM_MGMT_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_stream_mgmt.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_stream_mgmt.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_stream_mgmt.yml ]; then
@@ -1300,7 +1395,8 @@ fi
 ### MOD_STUN_DISCO #############################################
 #
 if [ "${MOD_STUN_DISCO_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_stun_disco.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_stun_disco.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_stun_disco.yml ]; then
@@ -1314,7 +1410,8 @@ fi
 ### MOD_VCARD #############################################
 #
 if [ "${MOD_VCARD_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_vcard.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_vcard.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_vcard.yml ]; then
@@ -1328,7 +1425,8 @@ fi
 ### MOD_VCARD_XUPDATE #############################################
 #
 if [ "${MOD_VCARD_XUPDATE_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_vcard_xupdate.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_vcard_xupdate.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_vcard_xupdate.yml ]; then
@@ -1342,7 +1440,8 @@ fi
 ### MOD_VERSION #############################################
 #
 if [ "${MOD_VERSION_ENABLED:-true}" = true ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../mod_version.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/mod_version.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_version.yml ]; then
@@ -1356,46 +1455,76 @@ fi
 #
 ### Additional "non-default" core-modules #############################################
 #
+if [ ! -z $ADDITIONAL_CORE_MODULE_1_NAME ] || [ ! -z $ADDITIONAL_CORE_MODULE_2_NAME ] || [ ! -z $ADDITIONAL_CORE_MODULE_3_NAME ]; then
+echo ">>> "
+echo ">>> ======================================================================="
+echo ">>> Configuring additional non-default ejabberd core modules"
+echo ">>> "
 cat >> $CONFIGFILE <<EOF;
 # additionally enabled core-modules, defined by environment variables and mounted config files
 EOF
 if [ ! -z $ADDITIONAL_CORE_MODULE_1_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../$ADDITIONAL_CORE_MODULE_1_NAME.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/$ADDITIONAL_CORE_MODULE_1_NAME.yml
 EOF
 fi
 if [ ! -z $ADDITIONAL_CORE_MODULE_2_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../$ADDITIONAL_CORE_MODULE_2_NAME.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/$ADDITIONAL_CORE_MODULE_2_NAME.yml
 EOF
 fi
 if [ ! -z $ADDITIONAL_CORE_MODULE_3_NAME ]; then
-cat >> $CONFIGFILE <<EOF;
+  echo ">>> creating link to ../$ADDITIONAL_CORE_MODULE_3_NAME.yml"
+  cat >> $CONFIGFILE <<EOF;
   - $PATH_MODULE_CONFIG/$ADDITIONAL_CORE_MODULE_3_NAME.yml
 EOF
+fi
 fi
 #
 ### Additional non-core-modules #############################################
 #
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME ] || [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME ] || [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME ]; then
+  echo ">>> "
+  echo ">>> ======================================================================="
+  echo ">>> Configuring additional ejabberd contribution modules, starting ejabberd@$(hostname -s) to install contribution modules"
+  echo ">>> "
   $PATH_EJABBERD_HOME/bin/ejabberdctl start
   sleep 15s
   $PATH_EJABBERD_HOME/bin/ejabberdctl modules_update_specs
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME ]; then
+  echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME"
   $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME.yml
 fi
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME ]; then
+  echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME"
   $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME.yml
 fi
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME ]; then
+  echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME"
   $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME.yml
 fi
+  echo ">>> "
+  echo ">>> Finished ejabberd contribution modules installation,"
+  echo ">>> stopping ejabberd@$(hostname -s) and waiting for 10 seconds"
+  echo ">>> "
   $PATH_EJABBERD_HOME/bin/ejabberdctl stop
   sleep 10s
 fi
+echo ">>> "
+echo ">>> ======================================================================="
+echo ">>> "
+echo ">>>                    Main configuration setup done"
+echo ">>>"
+echo ">>> ======================================================================="
+echo ">>> "
+echo ">>>     Next step: joining cluster and/ or to start in foreground mode"
+echo ">>> "
+
 ### Local Variables:
 ### mode: yaml
 ### End:
