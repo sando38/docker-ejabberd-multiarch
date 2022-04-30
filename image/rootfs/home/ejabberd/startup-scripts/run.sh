@@ -127,7 +127,7 @@ if [ "${KUBERNETES_AUTO_CLUSTER:-false}" = true ]; then
   echo ">>> "
 
   # cluster IPs behind headless service
-  IPS=$(nslookup $HEADLESS_SERVICE | tail -n +3 | grep "Address:" | sed -E 's/^Address: (.*)$/\1/')
+  IPS=$(dig $HEADLESS_SERVICE +short)
   for IP in ${IPS}
   do
       echo ">>>"
