@@ -137,8 +137,7 @@ if [ "${KUBERNETES_AUTO_CLUSTER:-false}" = true ]; then
       echo ""
       echo ">>> looking up hostname for: $IP"
       echo ">>>"
-  #    HOSTNAME=$(nslookup $IP | tail -n +3 | grep -E '[^=]*= (.*).'"$HEADLESS_SERVICE"'$'  | sed -E 's/[^=]*= (.*).'"$HEADLESS_SERVICE"'$/\1/')
-      HOSTNAME=$(nslookup $IP | grep -E '[^=]*= (.*).'"$HEADLESS_SERVICE" | sed -E 's/[^=]*= (.*).'"$HEADLESS_SERVICE"'/\1/' | sed -e 's/\.//g')
+      HOSTNAME=$(dig -x $IP +short | sed -E 's/(.*).'"$HEADLESS_SERVICE."'/\1/')
       if [[ "$HOSTNAME_S" == "$HOSTNAME" ]] ; then
           echo ">>> found own hostname, skipping"
           echo ">>>"
