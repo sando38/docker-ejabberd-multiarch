@@ -1,0 +1,89 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xmpp-server-c2s
+  namespace: xmpp
+spec:
+  entryPoints:
+    - xmpp-c2s
+  routes:
+  - match: HostSNI(`*`)
+    services:
+    - name: ejabberd
+      port: 5222
+      proxyProtocol:
+        version: 2
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xmpp-server-c2ss
+  namespace: xmpp
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: HostSNI(`example.com`)
+    services:
+    - name: ejabberd
+      port: 5223
+      proxyProtocol:
+        version: 2
+  tls:
+    options:
+    passthrough: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xmpp-server-s2s
+  namespace: xmpp
+spec:
+  entryPoints:
+    - xmpp-s2s
+  routes:
+  - match: HostSNI(`*`)
+    services:
+    - name: ejabberd
+      port: 5269
+      proxyProtocol:
+        version: 2
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xmpp-server-s2ss
+  namespace: xmpp
+spec:
+  entryPoints:
+    - xmpp-s2ss
+  routes:
+  - match: HostSNI(`example.com`)
+    services:
+    - name: ejabberd
+      port: 5270
+      proxyProtocol:
+        version: 2
+  tls:
+    options:
+    passthrough: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xmpp-server-https
+  namespace: xmpp
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: HostSNI(`example.com`)
+    services:
+    - name: ejabberd
+      port: 5443
+      proxyProtocol:
+        version: 2
+  tls:
+    options:
+    passthrough: true

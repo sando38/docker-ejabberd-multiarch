@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ejabberd
+  namespace:
+  labels:
+    type: statefulset
+spec:
+  serviceName: ejabberd
+  selector:
+    matchLabels:
+      app: ejabberd
+  template:
+    metadata:
+      labels:
+        app: ejabberd
+    spec:
+      containers:
+      - name: ejabberd
+        volumeMounts:
+        - name: mod-cron-config
+          mountPath: /home/ejabberd/etc/ejabberd/config-modules/mod_cron.yml
+          subPath: mod_cron.yml
+          readOnly: true
+      volumes:
+      - name: mod-cron-config
+        configMap:
+          name: mod-cron-config
+          defaultMode: 0440

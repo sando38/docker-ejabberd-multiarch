@@ -1,0 +1,5 @@
+namespace: xmpp
+resources:
+  - statefulset.yaml
+#  - service.yaml
+  - headless-service.yaml

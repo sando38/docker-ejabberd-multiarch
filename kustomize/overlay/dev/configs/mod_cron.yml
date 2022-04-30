@@ -1,0 +1,34 @@
+modules:
+  mod_cron:
+    tasks:
+    # purge mod_mam archive
+      - time: 12
+        units: hours
+        module: mod_mam
+        function: delete_old_messages
+        arguments:
+          - "all"  # Valid message TYPEs: "chat", "groupchat", "all".
+          - 30     # Older than DAYS
+    # purge offline messages
+      - time: 12
+        units: hours
+        ctl: delete_old_messages
+        arguments:
+          - "30"   # Older than DAYS
+    # purge expired offline messages
+      - time: 12
+        units: hours
+        ctl: delete_expired_messages
+        arguments: []
+    # purge delete_expired_pubsub_items
+      - time: 12
+        units: hours
+        module: mod_pubsub
+        function: delete_expired_items
+        arguments: []
+    # purge delete_old_pubsub_items
+      - time: 1
+        units: hours
+        ctl: delete_old_pubsub_items
+        arguments:
+          - "1000"

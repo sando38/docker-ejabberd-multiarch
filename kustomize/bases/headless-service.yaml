@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service # headless
+metadata:
+  name: ejabberd
+  labels:
+    app: ejabberd
+spec:
+  clusterIP: None  ### necessary for clustering and inter-pod-communication... https://blog.knoldus.com/deployment-vs-statefulset/
+  selector:
+    app: ejabberd
+  ports:
+  - name: mqtt
+    port: 1883
+    targetPort: 1883
+  - name: epmd
+    port: 4369
+    targetPort: 4369
+  - name: c2s
+    port: 5222
+    targetPort: 5222
+  - name: c2ss
+    port: 5223
+    targetPort: 5223
+  - name: s2s
+    port: 5269
+    targetPort: 5269
+  - name: s2ss
+    port: 5270
+    targetPort: 5270
+  - name: http
+    port: 5280
+    targetPort: 5280
+  - name: https
+    port: 5443
+    targetPort: 5443
+  - port: 3478
+    targetPort: 3478
+    protocol: UDP
+    name: stun-turn-udp
+  - port: 3478
+    targetPort: 3478
+    protocol: TCP
+    name: stun-turn-tcp
+  - port: 5349
+    targetPort: 5349
+    protocol: TCP
+    name: stuns-turns-tcp

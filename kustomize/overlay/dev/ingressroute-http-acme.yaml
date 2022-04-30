@@ -1,0 +1,19 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ejabberd-acme-http-01
+  namespace: xmpp
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: "(HostRegexp(`example.com`, `{subdomain:[a-z]+}.example.com`) && PathPrefix(`/.well-known/acme-challenge/`))"
+      kind: Rule
+      services:
+        - name: ejabberd
+          port: 5280
+      middlewares:
+      - name: ratelimit
+        namespace: default
+      - name: secure-headers
+        namespace: default

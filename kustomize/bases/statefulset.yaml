@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ejabberd
+  namespace:
+  labels:
+    type: statefulset
+spec:
+  serviceName: ejabberd
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ejabberd
+  template:
+    metadata:
+      labels:
+        app: ejabberd
+    spec:
+#      imagePullSecrets:
+#      - name: privateregistry
+      securityContext: # creating container with specific permissions to GID from ejabberd user 999
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      subdomain: ejabberd
+      containers:
+      - name: ejabberd
+        image: sando38/docker-ejabberd-multiarch:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsUser: 999
+          runAsGroup: 999
+          runAsNonRoot: true
+          privileged: false
+          capabilities:
+            drop: [ALL]
+        ports:
+        - name: mqtt
+          containerPort: 1883
+        - name: epmd
+          containerPort: 4369
+        - name: c2s
+          containerPort: 5222
+        - name: c2ss
+          containerPort: 5223
+        - name: s2s
+          containerPort: 5269
+        - name: s2ss
+          containerPort: 5270
+        - name: http
+          containerPort: 5280
+        - name: https
+          containerPort: 5443
+        - name: stun-udp
+          protocol: UDP
+          containerPort: 3748
+        - name: stun
+          protocol: TCP
+          containerPort: 3748
+        - name: stuns
+          containerPort: 5349
+        readinessProbe:
+          tcpSocket:
+            port: epmd
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        envFrom:
+        - configMapRef:
+            name: ejabberd-env
+        - secretRef:
+            name: ejabberd-secrets
+        volumeMounts:
+#        - name: ejabberd-config
+#          mountPath: /home/ejabberd/etc/ejabberd/ejabberd.yml
+#          subPath: ejabberd.yml
+#          readOnly: true
+        - name: mnesia
+          mountPath: /home/ejabberd/var/lib/ejabberd
+#        - name: upload
+#          mountPath: /home/ejabberd/upload
+#        - name: certs
+#          mountPath: /home/ejabberd/tls
+#          readOnly: true
+#      volumes:
+#      - name: ejabberd-config
+#        configMap:
+#          name: ejabberd-config
+#          defaultMode: 0440
+#      - name: upload
+#        persistentVolumeClaim:
+#          claimName: ejabberd-upload
+#          defaultMode: 0660
+#      - name: certs
+#        secret:
+#          secretName: ejabberdcerts
+#          defaultMode: 0440
+  volumeClaimTemplates:
+  - metadata:
+      name: mnesia
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi
