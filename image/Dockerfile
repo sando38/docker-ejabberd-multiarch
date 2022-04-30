@@ -5,8 +5,7 @@ ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US \
     LC_ALL=en_US.UTF-8 \
     PATH_EJABBERD_HOME=/home/ejabberd \
-    DEBIAN_FRONTEND=noninteractive \
-    BUILDER_DOWNLOAD_URL=https://ejabberd.messaging.one/download/package
+    DEBIAN_FRONTEND=noninteractive
 
 RUN set -x \
     && addgroup --gid 999 ejabberd \
@@ -90,7 +89,7 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends --fix-missing \
       ca-certificates \
-#      dnsutils \
+      dnsutils \
       gsfonts \
 #      imagemagick \
       inotify-tools \
@@ -113,7 +112,7 @@ USER ejabberd
 
 WORKDIR $PATH_EJABBERD_HOME
 
-EXPOSE 5222 5223 5269 5270 5280 5443
+EXPOSE 4369 5222 5223 5269 5270 5280 5443
 
 VOLUME $PATH_EJABBERD_HOME/etc/ejabberd $PATH_FILESERVER $PATH_TLS_CERTIFICATES $PATH_UPLOAD
 

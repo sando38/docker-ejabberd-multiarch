@@ -1061,6 +1061,7 @@ if [ "${LISTENER_HTTPS_FILESERVER_ENABLED:-false}" = true ]; then
   - $PATH_MODULE_CONFIG/mod_http_fileserver.yml
 EOF
   if [ ! -f $PATH_MODULE_CONFIG/mod_http_fileserver.yml ]; then
+    touch $PATH_EJABBERD_HOME/var/log/ejabberd/access.log
     cat > $PATH_MODULE_CONFIG/mod_http_fileserver.yml <<EOF;
 modules:
   mod_http_fileserver:
@@ -1490,29 +1491,32 @@ if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME ] || [ ! -z $INSTALL_ADDITI
   echo ">>> ======================================================================="
   echo ">>> Configuring additional ejabberd contribution modules, starting ejabberd@$(hostname -s) to install contribution modules"
   echo ">>> "
-  $PATH_EJABBERD_HOME/bin/ejabberdctl start
+  $EJABBERDCTL -n $ERLANG_NODE_ARG start
   sleep 15s
-  $PATH_EJABBERD_HOME/bin/ejabberdctl modules_update_specs
+  $EJABBERDCTL -n $ERLANG_NODE_ARG modules_update_specs
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME ]; then
   echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME"
-  $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME
+  $EJABBERDCTL -n $ERLANG_NODE_ARG module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME.yml
+  echo ">>> "
 fi
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME ]; then
   echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME"
-  $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME
+  $EJABBERDCTL -n $ERLANG_NODE_ARG module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_2_NAME.yml
+  echo ">>> "
 fi
 if [ ! -z $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME ]; then
   echo ">>> installing $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME"
-  $PATH_EJABBERD_HOME/bin/ejabberdctl module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME
+  $EJABBERDCTL -n $ERLANG_NODE_ARG module_install $INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME
   cp $PATH_MODULE_CONFIG/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME.yml $PATH_EJABBERD_HOME/.ejabberd-modules/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME/conf/$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME.yml
+  echo ">>> "
 fi
   echo ">>> "
   echo ">>> Finished ejabberd contribution modules installation,"
   echo ">>> stopping ejabberd@$(hostname -s) and waiting for 10 seconds"
   echo ">>> "
-  $PATH_EJABBERD_HOME/bin/ejabberdctl stop
+  $EJABBERDCTL -n $ERLANG_NODE_ARG stop
   sleep 10s
 fi
 echo ">>> "
@@ -1522,7 +1526,7 @@ echo ">>>                    Main configuration setup done"
 echo ">>>"
 echo ">>> ======================================================================="
 echo ">>> "
-echo ">>>     Next step: joining cluster and/ or to start in foreground mode"
+echo ">>>     Next step: joining cluster and/ or starting in foreground mode"
 echo ">>> "
 
 ### Local Variables:

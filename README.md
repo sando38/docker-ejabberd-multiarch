@@ -45,6 +45,16 @@ Inspect the running container with
 
 `docker logs < container name >`
 
+## Kubernetes auto clustering
+
+Starting with `v2.1.0` experimental kubernetes auto clustering is included. The variables `ERLANG_COOKIE` and `KUBERNETES_AUTO_CLUSTER` must be defined for that.
+
+Furthermore, this feature needs a statefulset combined with a headless service to function. A `kustomize` configuration example is provided in this repository. A helm chart may follow in the near future.
+
+The kustomize example is not ready to use and must be adjusted to your needs, i.e. PVCs for ejabberd nodes, TLS certificates mounted as generic secrets. A PVC for `HTTP Upload` and `HTTP File Server` should be considered as a `ReadWriteMany` type.
+
+Furthermore, the kustomize example assumes a reverse proxy in front of ejabberd. The example provides traefik proxy services. This also needs to be adjusted to your needs.
+
 ## Tags
 
 The image has several tags. Future tags will potentially support more architectures. To go with the newest image, just use the `latest` tag.
@@ -54,6 +64,7 @@ The image has several tags. Future tags will potentially support more architectu
 | TAGS  | Description  | Architectures  |
 | ------------ | ------------ | ------------ |
 | latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
+| v21-12-v2.1.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.1.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.1  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.1) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.0)  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 
@@ -82,6 +93,8 @@ volumes:
 
 NOTE: if you mount a docker volume for the configuration files, those will be persistent and the startup script is not going to be applied at next startup. Therefore, manual changes must occur within the docker volume and the respective configuration files.
 
+TLS certificates must be owned by ejabberd user/ group `999:999` and should not have world readable access rights.
+
 To trigger the startup script, at least the file `ejabberd.yml` must be deleted/ renamed from the docker volume.
 
 ## Parameters to configure ejabberd
@@ -100,6 +113,8 @@ Parameters in **bold** can be adjusted according to [ejabberd docs](https://docs
 | **HIDE_SENSITIVE_LOG_DATA**  | Disables logging of ip addresses of users  | false  |
 | **LANGUAGE_DEFAULT**  | Default language of the xmpp server  | en  |
 | JID_ADMIN_USER0  | Admin account of ejabberd server  | admin@$XMPP_DOMAIN0  |
+| **ERLANG_COOKIE**  | [erlang cookie](https://docs.ejabberd.im/admin/guide/security/#erlang-cookie) needed for clustering. To achieve clustering, this one must be defined. |   |
+| KUBERNETES_AUTO_CLUSTER  | Set to `true` to start auto clustering with a kubernetes statefulset and headless service. An example kustomize setup can be found in this repository. This setting requires `ERLANG_COOKIE` to be set to a value, otherwise the process will fail.  | false  |
 |   |   |   |
 
 Further settings for shapers will be added in the future.
