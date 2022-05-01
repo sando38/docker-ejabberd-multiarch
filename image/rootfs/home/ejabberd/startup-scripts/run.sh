@@ -127,7 +127,7 @@ if [ "${KUBERNETES_AUTO_CLUSTER:-false}" = true ]; then
   echo ">>> "
 
   # cluster IPs behind headless service
-  IPS=$(dig $HEADLESS_SERVICE +short)
+  IPS=$(getent hosts $HEADLESS_SERVICE | awk '{ print $1 }')
   for IP in ${IPS}
   do
       echo ">>>"
@@ -137,8 +137,8 @@ if [ "${KUBERNETES_AUTO_CLUSTER:-false}" = true ]; then
       echo ""
       echo ">>> looking up hostname for: $IP"
       echo ">>>"
-      HOSTNAME=$(dig -x $IP +short | sed -E 's/(.*).'"$HEADLESS_SERVICE."'/\1/')
-      if [[ "$HOSTNAME_S" == "$HOSTNAME" ]] ; then
+      HOSTNAME=$(getent hosts $IP | awk '{ print $2 }')
+      if [[ "$HOSTNAME_F" == "$HOSTNAME" ]] ; then
           echo ">>> found own hostname, skipping"
           echo ">>>"
           continue
@@ -149,7 +149,7 @@ if [ "${KUBERNETES_AUTO_CLUSTER:-false}" = true ]; then
       echo ">>> trying to connect to node with hostname"
       echo ">>> $HOSTNAME"
       echo ">>>"
-      $EJABBERDCTL -n $ERLANG_NODE_ARG join_cluster "ejabberd@$HOSTNAME.$HEADLESS_SERVICE"
+      $EJABBERDCTL -n $ERLANG_NODE_ARG join_cluster "ejabberd@$HOSTNAME"
       CLUSTERING_RESULT=$?
       echo ">>>"
       echo "List of current cluster members:"

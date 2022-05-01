@@ -89,7 +89,7 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends --fix-missing \
       ca-certificates \
-      dnsutils \
+#      dnsutils \
       gsfonts \
 #      imagemagick \
       inotify-tools \
