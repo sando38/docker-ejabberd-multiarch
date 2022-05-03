@@ -19,7 +19,7 @@ spec:
       - name: ejabberd
         volumeMounts:
         - name: mod-cron-config
-          mountPath: /home/ejabberd/etc/ejabberd/config-modules/mod_cron.yml
+          mountPath: /opt/ejabberd/conf/mod_cron.yml
           subPath: mod_cron.yml
           readOnly: true
       volumes:
