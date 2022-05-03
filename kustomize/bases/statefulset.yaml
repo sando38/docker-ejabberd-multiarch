@@ -28,7 +28,7 @@ spec:
         image: sando38/docker-ejabberd-multiarch:latest
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
+          readOnlyRootFilesystem: true # if 'true' -> ERLANG_COOKIE, if needed, must be mounted with initContainers
           runAsUser: 999
           runAsGroup: 999
           runAsNonRoot: true
@@ -72,15 +72,15 @@ spec:
             name: ejabberd-secrets
         volumeMounts:
 #        - name: ejabberd-config
-#          mountPath: /home/ejabberd/etc/ejabberd/ejabberd.yml
+#          mountPath: /opt/ejabberd/conf/ejabberd.yml
 #          subPath: ejabberd.yml
 #          readOnly: true
         - name: mnesia
-          mountPath: /home/ejabberd/var/lib/ejabberd
+          mountPath: /opt/database
 #        - name: upload
-#          mountPath: /home/ejabberd/upload
+#          mountPath: /opt/ejabberd/upload
 #        - name: certs
-#          mountPath: /home/ejabberd/tls
+#          mountPath: /opt/ejabberd/tls
 #          readOnly: true
 #      volumes:
 #      - name: ejabberd-config

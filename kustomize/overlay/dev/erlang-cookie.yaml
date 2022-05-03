@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ejabberd
+  namespace:
+  labels:
+    type: statefulset
+spec:
+  serviceName: ejabberd
+  selector:
+    matchLabels:
+      app: ejabberd
+  template:
+    metadata:
+      labels:
+        app: ejabberd
+    spec:
+      initContainers:
+        - name: erlang-cookie-bakery
+          image: alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true # .erlang.cookie created in home directory prevents from setting to "true"
+            runAsUser: 9000
+            runAsGroup: 9000
+            runAsNonRoot: true
+            privileged: false
+            capabilities:
+              drop: [ALL]
+          command:
+            - sh
+            - -c
+            - |
+              cp /secret/.erlang.cookie /cookie
+              chmod -R 400 /cookie/.erlang.cookie
+              chown 9000:9000 /cookie/.erlang.cookie
+          volumeMounts:
+            - name: cookie
+              mountPath: /cookie
+            - name: erlang-cookie
+              mountPath: /secret/.erlang.cookie
+              subPath: .erlang.cookie
+      subdomain: ejabberd
+      containers:
+      - name: ejabberd
+        volumeMounts:
+        - name: cookie
+          mountPath: /opt/ejabberd/.erlang.cookie
+          subPath: .erlang.cookie
+#          readOnly: false
+      volumes:
+      - name: cookie
+        emptyDir:
+          medium: Memory
+      - name: erlang-cookie
+        secret:
+          secretName: erlang-cookie
