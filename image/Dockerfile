@@ -1,124 +1,121 @@
-FROM docker.io/debian:bullseye as builder
+FROM alpine:3.15.4 AS build
+ARG VERSION=master
 
-ARG EJABBERD_TAG=21.12
-ENV LANG=en_US.UTF-8 \
-    LANGUAGE=en_US \
-    LC_ALL=en_US.UTF-8 \
-    PATH_EJABBERD_HOME=/home/ejabberd \
-    DEBIAN_FRONTEND=noninteractive
+RUN apk upgrade --update musl \
+    && apk add \
+    autoconf \
+    automake \
+    bash \
+    build-base \
+    curl \
+    elixir \
+    erlang-odbc \
+    erlang-reltool \
+    expat-dev \
+    file \
+    gd-dev \
+    git \
+    jpeg-dev \
+    libpng-dev \
+    libwebp-dev \
+    linux-pam-dev \
+    openssl \
+    openssl-dev \
+    sqlite-dev \
+    yaml-dev \
+    zlib-dev
 
-RUN set -x \
-    && addgroup --gid 999 ejabberd \
-    && adduser --uid 999 --gid 999 --disabled-password --gecos "" --home $PATH_EJABBERD_HOME ejabberd \
-    && apt-get update \
-    && apt-get install -y automake \
-        build-essential \
-        dirmngr \
-        erlang-src erlang-dev \
-        git \
-        gpg \
-        libexpat-dev \
-        libgd-dev \
-        libssl-dev \
-        libsqlite3-dev \
-        libwebp-dev \
-        libyaml-dev \
-        wget \
-        zlib1g-dev \
-        ca-certificates \
-        erlang-snmp erlang-ssl erlang-ssh \
-        erlang-tools erlang-xmerl erlang-diameter erlang-eldap \
-        erlang-eunit erlang-odbc erlang-os-mon \
-        erlang-parsetools erlang-inets \
-        gsfonts \
-        imagemagick \
-        inotify-tools \
-        ldnsutils \
-        libgd3 \
-        libwebp6 \
-        libyaml-0-2 \
-        locales \
-        openssl \
-    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-    && locale-gen \
-    && wget https://s3.amazonaws.com/rebar3/rebar3 \
-    && chmod +x rebar3 \
-    && git clone https://github.com/processone/ejabberd.git --branch $EJABBERD_TAG --single-branch --depth=1 ejabberd \
-    && cd ejabberd \
+RUN mix local.hex --force \
+    && mix local.rebar --force
+
+WORKDIR ejabberd
+
+RUN git clone https://github.com/processone/ejabberd.git . \
+    && git checkout $VERSION \
+    && mv .github/container/ejabberdctl.template . \
     && ./autogen.sh \
-    && ./configure --with-rebar=/rebar3 \
-      --enable-user=ejabberd \
-      --enable-group=ejabberd \
-      --enable-full-xml \
-  #    --enable-latest-deps \
-      --enable-mssql \
-      --enable-mysql \
-      --enable-new-sql-schema \
-      --enable-odbc \
-      --disable-pam \
-      --enable-pgsql \
-      --enable-redis \
-      --enable-roster-gateway-workaround \
-      --enable-sip \
-      --enable-sqlite \
-      --enable-stun \
-      --disable-tools \
-      --disable-zlib \
-    && make rel \
-    && cp _build/prod/rel/ejabberd/ejabberd-*.tar.gz $PATH_EJABBERD_HOME
+    && ./configure --with-rebar=mix --enable-all \
+    && mix deps.get \
+    && make rel
+
+RUN cp -r _build/prod/rel/ejabberd/ /opt/ejabberd-$VERSION \
+    && mkdir -p /opt/ejabberd \
+    && mv /opt/ejabberd-$VERSION/conf /opt/ejabberd/conf
+
+RUN BINPATH=$(dirname $(find /opt -name msgs))/bin/ \
+    && mkdir $BINPATH \
+    && cp tools/captcha*.sh $BINPATH
+
+RUN export PEM=/opt/ejabberd/conf/server.pem \
+    && curl -o "/opt/ejabberd/conf/cacert.pem" 'https://curl.se/ca/cacert.pem' \
+    && openssl req -x509 \
+            -batch \
+            -nodes \
+            -newkey rsa:4096 \
+            -keyout $PEM \
+            -out $PEM \
+            -days 3650 \
+            -subj "/CN=localhost" \
+    && sed -i '/^loglevel:/a \ \
+        \nca_file: /opt/ejabberd/conf/cacert.pem \
+        \ncertfiles: \
+        \n  - /opt/ejabberd/conf/server.pem' "/opt/ejabberd/conf/ejabberd.yml"
 
 COPY rootfs /
 
-FROM docker.io/debian:bullseye-slim as ejabberd
+FROM alpine:3.15.4
+ENV HOME=/opt/ejabberd
 
-ENV LANG=en_US.UTF-8 \
-    LANGUAGE=en_US \
-    LC_ALL=en_US.UTF-8 \
-    PATH_EJABBERD_HOME=/home/ejabberd \
-    PATH_FILESERVER=/home/ejabberd/files \
-    PATH_MODULE_CONFIG=/home/ejabberd/etc/ejabberd/config-modules \
-    PATH_STARTUP_SCRIPTS=/home/ejabberd/startup-scripts \
-    PATH_TLS_CERTIFICATES=/home/ejabberd/tls \
-    PATH_UPLOAD=/home/ejabberd/upload
+COPY --from=build /opt /opt
 
-COPY --from=builder $PATH_EJABBERD_HOME $PATH_EJABBERD_HOME
+# add packages and remove cache
+RUN apk upgrade --update musl \
+    && apk add \
+    expat \
+    freetds \
+    gd \
+    jpeg \
+    libgd \
+    libpng \
+    libstdc++ \
+    libwebp \
+    linux-pam \
+    ncurses-libs \
+    openssl \
+    sqlite \
+    sqlite-libs \
+    unixodbc \
+    yaml \
+    zlib \
+    && ln -fs /usr/lib/libtdsodbc.so.0 /usr/lib/libtdsodbc.so \
+    && rm -rf /var/cache/apk/* \
+# user and directories
+    && addgroup ejabberd -g 9000 \
+    && adduser -s /bin/sh -D -G ejabberd ejabberd -u 9000 \
+    && mkdir -p $HOME/conf $HOME/database $HOME/logs $HOME/upload $HOME/files $HOME/tls $HOME/.ejabberd-modules \
+# ejabberdctl link, scripts and configuration files
+    && mv $HOME/scripts/* /usr/local/bin \
+    && echo -e \
+         "#!/bin/sh \
+        \n[ -z \$ERLANG_NODE_ARG ] && export ERLANG_NODE_ARG=ejabberd@localhost \
+        \nexport CONFIG_DIR=/opt/ejabberd/conf \
+        \nexport LOGS_DIR=/opt/ejabberd/logs \
+        \nexport SPOOL_DIR=/opt/ejabberd/database \
+        \nexec $(find /opt -name ejabberdctl) \"\$@\"" > $HOME/scripts/ejabberdctl \
+    && chmod +x /usr/local/bin/* /opt/ejabberd/scripts/* \
+    && mv $HOME/conf/ejabberd.yml $HOME/conf/ejabberd.yml.template \
+    && chown -R ejabberd:ejabberd $HOME
 
-RUN set -x \
-  && addgroup --gid 999 ejabberd \
-  && adduser --uid 999 --gid 999 --disabled-password --gecos "" --home $PATH_EJABBERD_HOME ejabberd \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends --fix-missing \
-      ca-certificates \
-#      dnsutils \
-      gsfonts \
-#      imagemagick \
-      inotify-tools \
-      ldnsutils \
-      libgd3 \
-      libwebp6 \
-      libyaml-0-2 \
-      locales \
-      openssl \
-  && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-  && locale-gen \
-  && tar -xzf $PATH_EJABBERD_HOME/ejabberd-*.tar.gz -C $PATH_EJABBERD_HOME \
-  && rm -rf $PATH_EJABBERD_HOME/ejabberd-*.tar.gz \
-  && chown -R 999:999 $PATH_EJABBERD_HOME \
-  && chmod 555 $PATH_STARTUP_SCRIPTS/* $PATH_EJABBERD_HOME/bin/* \
-  && mv $PATH_EJABBERD_HOME/etc/ejabberd/ejabberd.yml $PATH_EJABBERD_HOME/etc/ejabberd/ejabberd.yml.template \
-  && ln -s $PATH_EJABBERD_HOME/bin/ejabberdctl /usr/bin/ejabberdctl
+HEALTHCHECK \
+    --interval=5s \
+    --timeout=5s \
+    --start-period=5s \
+    --retries=120 \
+    CMD /opt/ejabberd/scripts/ejabberdctl status
 
+WORKDIR $HOME
 USER ejabberd
+VOLUME ["$HOME/conf", "$HOME/database", "$HOME/logs", "$HOME/upload", "$HOME/files", "$HOME/tls", "$HOME/.ejabberd-modules"]
+EXPOSE 1883 4369-4399 5222 5269 5280 5443
 
-WORKDIR $PATH_EJABBERD_HOME
-
-EXPOSE 4369 5222 5223 5269 5270 5280 5443
-
-VOLUME $PATH_EJABBERD_HOME/etc/ejabberd $PATH_FILESERVER $PATH_TLS_CERTIFICATES $PATH_UPLOAD
-
-LABEL org.opencontainers.image.description="ejabberd image, built for multiple architectures and with startup configuration script" \
-      org.opencontainers.image.version="${EJABBERD_TAG}" \
-      org.opencontainers.image.authors="Sando <sandomir@tutanota.com.com>" \
-      org.opencontainers.image.source="https://github.com/sando38/docker-ejabberd-multiarch"
-
-CMD ["startup-scripts/run.sh"]
+CMD ["/usr/local/bin/run.sh"]

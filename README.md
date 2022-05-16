@@ -3,17 +3,20 @@
 This is a multi-arch [ejabberd](https://docs.ejabberd.im/ "ejabberd") docker image, currently built for
 
 * linux/amd64
-* linux/arm64
 * linux/386
+* linux/arm64
 * linux/arm/v7
+* linux/arm/v6
 
-and is based on Debian Bullseye Slim.
+and based on Alpine Linux. It contains a startup configuration script and an option for kubernetes to perform automatic clustering.
+
+The image itself is now based upon the [official ejabberd docker image](https://github.com/processone/ejabberd/blob/master/.github/container/Dockerfile) since the recent improvements of that image. It only contains small differences, mainly to reduce the # of layers, and, of course, to include the configuration script into the running process.
+
+**Please also look for breaking changes in the [release descriptions](https://github.com/sando38/docker-ejabberd-multiarch/releases)!**
 
 [Docker Hub link](https://hub.docker.com/r/sando38/docker-ejabberd-multiarch)
 
 There may be further architectures supported in future. If you need another, raise an issue on github.
-
-The docker files, etc. are available on [github](https://github.com/sando38/docker-ejabberd-multiarch).
 
 ## Usage
 
@@ -35,15 +38,33 @@ The image can also run in a less "privileged" mode:
 ```
 docker run -d \
   --name ejabberd \
-  --user 999:999 \
+  --user 9000:9000 \
   --security-opt no-new-privileges \
   --cap-drop=ALL \
+  --read-only \
   sando38/docker-ejabberd-multiarch
 ```
 
 Inspect the running container with
 
 `docker logs < container name >`
+
+## Readonly file system & ERLANG_COOKIE
+
+NOTE: This is only of importance if you want to cluster.
+
+If you want to use a readonly file system (`--read-only`, in compose `read_only: true` or in kubernetes' `securityContext, readOnlyRootFilesystem: true`), the `ERLANG_COOKIE` must be mounted with the correct permissions into the container.
+
+Here is a quick checklist:
+
+* Create cookie with correct read-only permissions (`chmod 0400`) and owner `9000:9000`
+  * `echo "My1-ErlanG2-CookiE3" > /path/to/COOKIE`
+* Mount cookie to: ` -v /path/to/COOKIE:/opt/ejabberd/.erlang.cookie`
+* Optional: Set environment variable `ERLANG_COOKIE` to the same as in the file: i.e. `My1-ErlanG2-CookiE3`. The script will check the existence of `/opt/ejabberd/.erlang.cookie` and try to export `ERLANG_COOKIE` from it.
+
+In this scenario, if only the `ERLANG_COOKIE` variable is used without the mounted cookie, the default cookie will be applied. Clustering still works. Please ensure, that erlang ports are not published to the internet.
+
+For kubernetes an `initContainers` may be used to achieve the correct file permissions (see kustomize example).
 
 ## Kubernetes auto clustering
 
@@ -63,7 +84,8 @@ The image has several tags. Future tags will potentially support more architectu
 
 | TAGS  | Description  | Architectures  |
 | ------------ | ------------ | ------------ |
-| latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
+| latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
+| v22-05-v3.0.0  | [offical ejabberd release notes](https://docs.ejabberd.im/admin/upgrade/from_21.12_to_22.05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.0.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
 | v21-12-v2.1.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.1.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.1  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.1) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.0)  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
@@ -74,7 +96,7 @@ The image has several tags. Future tags will potentially support more architectu
 This image provides a way to adjust the standard configuration file `ejabberd.yml` at initial startup. If the configuration file is not made persistent (e.g. via a mounted volume), the configuration file will be (re)created at every startup. The configuration file will not be configured, if one provides an own `ejabberd.yml` file and mounts it into the container.
 
 **Mountpath:**
-` -v /path/to/ejabberd.yml:/home/ejabberd/etc/ejabberd/ejabberd.yml`
+` -v /path/to/ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml`
 
 [Link to ejabberd.yml example file](https://github.com/processone/ejabberd/blob/master/ejabberd.yml.example "Link to ejabberd.yml example file")
 
@@ -84,16 +106,16 @@ It is advised to make some data persistent. Those can be mounted here:
 
 ```
 volumes:
-  - /path/to/configfiles:/home/ejabberd/etc/ejabberd    # for (custom) configuration files
-  - /path/to/database:/home/ejabberd/var/lib/ejabberd   # mnesia database & acme client certificates
-  - /path/to/fileserver/docs:/home/ejabberd/files       # for HTTP fileserver functionality
-  - /path/to/cert-files:/home/ejabberd/tls              # for custom tls certicates
-  - /path/to/upload/files:/home/ejabberd/upload         # for HTTP upload functionality
+  - /path/to/config-files:/opt/ejabberd/conf      # for (custom) configuration files
+  - /path/to/database:/opt/ejabberd/database      # mnesia database & acme client certificates
+  - /path/to/fileserver/docs:/opt/ejabberd/files  # for HTTP fileserver functionality
+  - /path/to/cert-files:/opt/ejabberd/tls         # for custom tls certicates
+  - /path/to/upload/files:/opt/ejabberd/upload    # for HTTP upload functionality
 ```
 
 NOTE: if you mount a docker volume for the configuration files, those will be persistent and the startup script is not going to be applied at next startup. Therefore, manual changes must occur within the docker volume and the respective configuration files.
 
-TLS certificates must be owned by ejabberd user/ group `999:999` and should not have world readable access rights.
+TLS certificates must be owned by ejabberd user/ group `9000:9000` and should not have world readable access rights.
 
 To trigger the startup script, at least the file `ejabberd.yml` must be deleted/ renamed from the docker volume.
 
@@ -106,15 +128,15 @@ Parameters in **bold** can be adjusted according to [ejabberd docs](https://docs
 ### General settings
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
-| XMPP_DOMAIN0  | XMPP Server Domain (with a matching TLS certificate)  | localhost  |
-| XMPP_DOMAIN1  | Additional XMPP Server Domain (with a matching TLS certificate)  |   |
+| XMPP_DOMAIN1  | XMPP Server Domain (with a matching TLS certificate)  | localhost  |
 | XMPP_DOMAIN2  | Additional XMPP Server Domain (with a matching TLS certificate)  |   |
+| XMPP_DOMAIN3  | Additional XMPP Server Domain (with a matching TLS certificate)  |   |
 | **LOGLEVEL**  | **Possible values**: none, emergency, alert, critical, error, warning, notice, info, debug  |  info |
 | **HIDE_SENSITIVE_LOG_DATA**  | Disables logging of ip addresses of users  | false  |
 | **LANGUAGE_DEFAULT**  | Default language of the xmpp server  | en  |
-| JID_ADMIN_USER0  | Admin account of ejabberd server  | admin@$XMPP_DOMAIN0  |
-| **ERLANG_COOKIE**  | [erlang cookie](https://docs.ejabberd.im/admin/guide/security/#erlang-cookie) needed for clustering. To achieve clustering, this one must be defined. |   |
-| KUBERNETES_AUTO_CLUSTER  | Set to `true` to start auto clustering with a kubernetes statefulset and headless service. An example kustomize setup can be found in this repository. This setting requires `ERLANG_COOKIE` to be set to a value, otherwise the process will fail.  | false  |
+| JID_ADMIN_USER0  | Admin account of ejabberd server  | admin@$XMPP_DOMAIN1  |
+| **ERLANG_COOKIE**  | [erlang cookie](https://docs.ejabberd.im/admin/guide/security/#erlang-cookie) needed for clustering. To achieve clustering, this one must be defined or the cookie must be mounted into the container at `/opt/ejabberd/.erlang.cookie` |   |
+| KUBERNETES_AUTO_CLUSTER  | Set to `true` to start auto clustering with a kubernetes statefulset and headless service. An example kustomize setup can be found in this repository. This setting requires `ERLANG_COOKIE` to be set to a value or the `.erlang.cookie` to be mounted.  | false  |
 |   |   |   |
 
 Further settings for shapers will be added in the future.
@@ -149,9 +171,11 @@ SQL database must be configure either if `DEFAULT_DB=sql` or `DEFAULT_RAM_DB=sql
 | **DB_POOL_SIZE**  | If type `sqlite` is used, pool size is hard coded value `1`.  | 10  |
 | **DB_SSL**  | only applies to type `mysql` and `pgsql`. Options are `true` or `false`  | false  |
 | **DB_SSL_VERIFY**  | wheter to verify or not. If enable, set to `true`. If `true`, it needs DB_SSL_CAFILE_NAME & DB_SSL_CERTFILE_NAME set | false  |
-| **DB_SSL_CAFILE_NAME**  | Mounted CA certificate in path `/home/ejabberd/tls`  | ca.pem  |
-| **DB_SSL_CERTFILE_NAME**  | Mounted client certificate in path `/home/ejabberd/tls`  | server.pem  |
+| **DB_SSL_CAFILE_NAME**  | Mounted CA certificate in path `/opt/ejabberd/tls`  | ca.pem  |
+| **DB_SSL_CERTFILE_NAME**  | Mounted client certificate in path `/opt/ejabberd/tls`  | server.pem  |
 |   |   |   |
+
+Note: `DB_PASSWORD` may be also mounted as docker secret with `_FILE` (see docker compose example)
 
 #### REDIS settings
 
@@ -169,6 +193,8 @@ Redis must be defined either, if DEFAULT_RAM_DB=redis or REDIS_ENABLED=true.
 | **REDIS_CONNECT_TIMEOUT**  | [Description from ejabberd docs](https://docs.ejabberd.im/admin/configuration/database/#redis)  | 1  |
 |   |   |   |
 
+Note: `REDIS_PASSWORD` may be also mounted as docker secret with `_FILE` (see docker compose example)
+
 ### Authentication
 
 Currently only mnesia, sql, ldap or anonymous are supported by the configuration script of this image.
@@ -176,7 +202,7 @@ Currently only mnesia, sql, ldap or anonymous are supported by the configuration
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | **AUTH_METHOD**  | Currently supported by this image are `mnesia, sql, ldap, anonymous`  | mnesia  |
-| **AUTH_PASSWORD_FORMAT**  | only be valid if AUTH_METHOD is `mnesia` or `sql`, options are: `scram` or `plain`  | scram  |
+| **AUTH_PASSWORD_FORMAT**  | only valid/ applied if AUTH_METHOD is `mnesia` or `sql`, options are: `scram` or `plain`  | scram  |
 | **AUTH_SCRAM_HASH**  | hash of scram if AUTH_PASSWORD_FORMAT=scram. Options are `sha`, `sha256`, `sha512`  | sha256  |
 |   |   |   |
 
@@ -208,22 +234,20 @@ These variables only take effect if AUTH_METHOD=ldap. See also [ejabberd docs](h
 | **LDAP_BACKUP_SERVER_3**  | Another alternative LDAP backup server if LDAP_SERVER* are not available anymore  |   |
 |   |   |   |
 
+Note: `LDAP_BIND_PW` may be also mounted as docker secret with `_FILE` (see docker compose example)
+
 ### SSL/TLS settings
 
-TLS certificates if not recieved by internal ACME client need to be mounted in to following folder:
+TLS certificates if not recieved by internal ACME client need to be mounted in to the following directory as `*.pem` files:
 
-`-v /path/to/certfiles:/home/ejabberd/tls`
+`-v /path/to/certfiles:/opt/ejabberd/tls`
+
+A wildcard reference is created from the configuration script if any STARTTLS or TLS is enabled in any of the various listeners.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
-| DHPARAM_KEYSIZE  | Size of the dhparam key generated at startup if no dhparam file is mounted into the container. Can also be set to `4096`. Mount path is `/home/ejabberd/tls/$DHPARAM_FILE_NAME`  | 2048  |
-| DHPARAM_FILE_NAME  | Name of the dhparam file, if own file is mounted. Must be mounted in the same path as the TLS certificates.  | dh.pem  |
-| TLS_CRT_FILE_XMPP_DOMAIN0  | Name of matching TLS certificate for XMPP_DOMAIN0, must be mounted into the container | fullchain.pem  |
-| TLS_KEY_FILE_XMPP_DOMAIN0  | Name of matching TLS key for XMPP_DOMAIN0, must be mounted into the container | privkey.pem  |
-| TLS_CRT_FILE_XMPP_DOMAIN1  | Name of matching TLS certificate for XMPP_DOMAIN1, must be mounted into the container | fullchain.pem  |
-| TLS_KEY_FILE_XMPP_DOMAIN1  | Name of matching TLS key for XMPP_DOMAIN1, must be mounted into the container | privkey.pem  |
-| TLS_CRT_FILE_XMPP_DOMAIN2  | Name of matching TLS certificate for XMPP_DOMAIN2, must be mounted into the container | fullchain.pem  |
-| TLS_KEY_FILE_XMPP_DOMAIN2  | Name of matching TLS key for XMPP_DOMAIN2, must be mounted into the container | privkey.pem  |
+| DHPARAM_KEYSIZE  | Size of the dhparam key generated at startup if no dhparam file is mounted into the container. Can also be set to `4096`. Mount path is `/opt/ejabberd/conf/$DHPARAM_FILE_NAME`  | 2048  |
+| DHPARAM_FILE_NAME  | Name of the dhparam file, if own file is mounted. Must be mounted in the configuration path `-v /path/to/dh.pem:/opt/ejabberd/conf/dh.pem`. If no file is mounted, the dhparam file will be generated.  | dh.pem  |
 | **TLS_CIPHERS**  | TLS ciphers to be offered through ejabberd  | ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256  |
 | **TLS_PROTOCOL_SSL_V3_DISABLED**  | Rejects request with *insecure* SSLv3 protocol | true  |
 | **TLS_PROTOCOL_TLS_V1_DISABLED**  | Rejects request with *insecure* TLSv1 protocol  | true  |
@@ -233,12 +257,12 @@ TLS certificates if not recieved by internal ACME client need to be mounted in t
 
 ### ACME client
 
-For the ACME client to work correctly, the HTTP listener needs to enabled (LISTENER_HTTP_ENABLED=true) and port 80 of the host machine needs to be forwarded to the HTTP listener port (default: 5280). **The HTTP listener is disabled by default.**
+For the ACME client to work correctly, the HTTP listener needs to enabled (`LISTENER_HTTP_ENABLED=true`) and port 80 of the host machine needs to be forwarded to the HTTP listener port (default: `5280`). **The HTTP listener is disabled by default.**
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | LISTENER_HTTP_ACME_ENABLED  | ACME listening option of HTTP listener is enabled, HTTP listener must be enabled to use ACME client `LISTENER_HTTP_ENABLED=true` | true  |
-| **ACME_ENABLED**  | if set to *false*, ACME client will not try to request certificates for the listed XMPP_DOMAIN*s  | true  |
+| **ACME_ENABLED**  | if set to *false*, ACME client will not try to request certificates for the listed `XMPP_DOMAIN*`s  | true  |
 | **ACME_EMAIL**  | needs an email address for registring an account at LetsEncrypt  | name@example.com  |
 | **ACME_URL**  | either the staging or production URL from LetsEncrypt  | https://acme-v02.api.letsencrypt.org/directory  |
 | **ACME_CERT_TYPE**  | Defines the type of the private key (rsa or ec)  | rsa  |
@@ -256,21 +280,21 @@ This listener cannot be disabled.
 | ------------ | ------------ | ------------ |
 | **LISTENER_C2S_PORT**  | Listening port  | 5222  |
 | **LISTENER_C2S_IP**  | Listening ip  | ::  |
-| **LISTENER_C2S_STARTTLS**  | Whether to activate STARTTLS or not. This option gets implicitly enabled when enabling LISTENER_C2S_STARTTLS_REQUIRED=true.    | false  |
+| **LISTENER_C2S_STARTTLS**  | Whether to activate STARTTLS or not. This option gets implicitly enabled when enabling `LISTENER_C2S_STARTTLS_REQUIRED=true`.    | false  |
 | **LISTENER_C2S_STARTTLS_REQUIRED**  | Whether to enforce STARTTLS or not. To enforce, set with `true`   | false  |
-| **LISTENER_C2S_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresss of connecting clients are preserved.  | false  |
+| **LISTENER_C2S_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. This is especially important in conjunction with [mod_fail2ban](https://docs.ejabberd.im/admin/configuration/modules/#mod-fail2ban). This is especially important in conjunction with [mod_fail2ban](https://docs.ejabberd.im/admin/configuration/modules/#mod-fail2ban). | false  |
 |   |   |   |
 
 #### Client to Server connections (TLS)
 
-For legacy TLS connections. This may be interesting also to map via port 443, either behind a load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
+For legacy TLS connections. This may be interesting also to map via port 443, either behind a layer4 load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | LISTENER_C2S_LEGACY_TLS_ENABLED  | Setting to `true` enables the listener | false  |
 | **LISTENER_C2S_LEGACY_TLS_PORT**  | Listening port  | 5223  |
 | **LISTENER_C2S_LEGACY_TLS_IP**  | Listening ip  | ::  |
-| **LISTENER_C2S_LEGACY_TLS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresss of connecting clients are preserved.  | false  |
+| **LISTENER_C2S_LEGACY_TLS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. This is especially important in conjunction with [mod_fail2ban](https://docs.ejabberd.im/admin/configuration/modules/#mod-fail2ban).  | false  |
 |   |   |   |
 
 #### Server to Server connections (TCP / STARTTLS)
@@ -282,20 +306,20 @@ For legacy TLS connections. This may be interesting also to map via port 443, ei
 | LISTENER_S2S_ENABLED  | Setting to `true` enables the listener | false  |
 | **LISTENER_S2S_PORT**  | Listening port  | 5269  |
 | **LISTENER_S2S_IP**  | Listening ip  | ::  |
-| **LISTENER_S2S_USE_STARTTLS**  | Whether to support STARTTLS or not [Link](https://docs.ejabberd.im/admin/configuration/toplevel/#s2s-use-starttls). To enforce, set to `required`. To enable, set to `optional`  | false  |
-| **LISTENER_S2S_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresss of connecting servers are preserved.  | false  |
+| **LISTENER_S2S_USE_STARTTLS**  | [Whether to support STARTTLS or not](https://docs.ejabberd.im/admin/configuration/toplevel/#s2s-use-starttls). To enforce, set to `required`. To enable, set to `optional`  | false  |
+| **LISTENER_S2S_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. This is especially important in conjunction with [mod_fail2ban](https://docs.ejabberd.im/admin/configuration/modules/#mod-fail2ban). | false  |
 |   |   |   |
 
 #### Server to Server connections (TLS)
 
-For legacy TLS connections. This may be interesting also to map via port 443, either behind a load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
+For legacy TLS connections. This may be interesting also to map via port 443, either behind a layer4 load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | LISTENER_S2S_LEGACY_TLS_ENABLED  | Setting to `true` enables the listener | false  |
 | **LISTENER_S2S_LEGACY_TLS_PORT**  | Listening port  | 5270  |
 | **LISTENER_S2S_LEGACY_TLS_IP**  | Listening ip  | ::  |
-| **LISTENER_S2S_LEGACY_TLS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresss of connecting clients are preserved.  | false  |
+| **LISTENER_S2S_LEGACY_TLS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. This is especially important in conjunction with [mod_fail2ban](https://docs.ejabberd.im/admin/configuration/modules/#mod-fail2ban).  | false  |
 |   |   |   |
 
 #### STUN-TURN listener
@@ -336,17 +360,17 @@ STUN-TURN via TCP is non-default and should not be considered.
 
 ##### STUNS-TURNS (TLS)
 
-STUN-TURN via TLS. This may be interesting also to map via port 443, either behind a load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
+STUN-TURN via TLS.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
-| LISTENER_STUNTURN_TCP_ENABLED  | Setting to `true` enables the listener | false  |
-| **LISTENER_STUNTURN_TCP_PORT**  | Listening port  | 5349  |
-| **LISTENER_STUNTURN_TCP_IP**  | Listening ip  | ::  |
-| **LISTENER_STUNTURN_TCP_USE_TURN**  | Wheter to offer TURN service or not. To enable, set `true`.  | false  |
-| **LISTENER_STUNTURN_TCP_TURN_IP4**  | The public ip address of the host machine  | 10.20.30.40  |
-| **LISTENER_STUNTURN_TCP_TURN_MIN_PORT**  | Minimum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 49152  |
-| **LISTENER_STUNTURN_TCP_TURN_MAX_PORT**  | Maximum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 65535  |
+| LISTENER_STUNSTURNS_TLS_ENABLED  | Setting to `true` enables the listener | false  |
+| **LISTENER_STUNSTURNS_TLS_PORT**  | Listening port  | 5349  |
+| **LISTENER_STUNSTURNS_TLS_IP**  | Listening ip  | ::  |
+| **LISTENER_STUNSTURNS_TLS_USE_TURN**  | Wheter to offer TURN service or not. To enable, set `true`.  | false  |
+| **LISTENER_STUNSTURNS_TLS_TURN_IP4**  | The public ip address of the host machine  | 10.20.30.40  |
+| **LISTENER_STUNSTURNS_TLS_TURN_MIN_PORT**  | Minimum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 49152  |
+| **LISTENER_STUNSTURNS_TLS_TURN_MAX_PORT**  | Maximum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 65535  |
 |   |   |   |
 
 #### HTTP listener
@@ -358,21 +382,22 @@ This listener may only be configured for test purposes and/ or ACME client usage
 | LISTENER_HTTP_ENABLED  | Setting to `true` enables the listener | false  |
 | **LISTENER_HTTP_PORT**  | Listening port  | 5280  |
 | **LISTENER_HTTP_IP**  | Listening ip  | ::  |
-| **LISTENER_HTTP_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresss of connecting clients are preserved.  | false  |
+| **LISTENER_HTTP_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. | false  |
 | **LISTENER_HTTP_ADMIN_ENABLED**  | To reach the admin interface at http://XMPP_DOMAIN*:LISTENER_HTTP_PORT/admin  | false  |
 | **LISTENER_HTTP_ACME_ENABLED**  | To enable ACME client challenge response. To make it work, there must be some mechanism to forward port 80 from the host machine to the LISTENER_HTTP_PORT  | true  |
 |   |   |   |
 
 #### HTTPS listener
 
-The general HTTP services listener for various services, which may be offered through ejabberd.
+The general HTTP services listener for various services, which may be offered through ejabberd. This may be interesting also to map via port 443, either behind a layer4 load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
 | LISTENER_HTTPS_ENABLED  | Setting to `false` disables the listener | true  |
 | **LISTENER_HTTPS_PORT**  | Listening port  | 5443  |
 | **LISTENER_HTTPS_IP**  | Listening ip  | ::  |
-| **LISTENER_HTTPS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP address of connecting clients are preserved.  | false  |
+| **LISTENER_HTTPS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved. | false  |
+| **LISTENER_HTTPS_HOST_META_ENABLED**  | From ejabberd version `22.05` on. Requires, that either `LISTENER_HTTPS_BOSH_ENABLED` or `LISTENER_HTTPS_WS_ENABLED` is enabled as well. | true  |
 | **LISTENER_HTTPS_ADMIN_ENABLED**  | To reach the admin interface at https://XMPP_DOMAIN*:LISTENER_HTTP_PORT/admin  | true  |
 | **LISTENER_HTTPS_API_ENABLED**  | HTTP API listener, accessible at https://XMPP_DOMAIN*:LISTENER_HTTP_PORT/api, to enable set to `true`  | false  |
 | **LISTENER_HTTPS_BOSH_ENABLED**  | HTTP bosh listener, accessible at https://XMPP_DOMAIN*:LISTENER_HTTP_PORT/bosh, to disable set to `false`  | true  |
@@ -398,7 +423,7 @@ More information are [here](https://docs.ejabberd.im/admin/configuration/listen/
 
 These is a list of modules addressed by the startup script. For some it may be advised to mount an own configuration script at the following path:
 
-`-v /path/to/module/configuration/files:/home/ejabberd/etc/ejabberd/config-modules`
+`-v /path/to/module/configuration/files:/opt/ejabberd/conf`
 
 A general description of modules options can be found here: [Ejabberd docs](https://docs.ejabberd.im/admin/configuration/modules/).
 
@@ -421,6 +446,7 @@ Some modules depend on other modules to be anabled. For example, mod_avatar depe
 | LISTENER_HTTPS_CONVERSEJS_ENABLED  | **mod_conversejs.yml** Please note: if mod_conversejs shall be enabled, either HTTPS bosh or websocket must be enabled as well. If both are enabled, then websocket will be configured. Link to [ejabberd docs](https://docs.ejabberd.im/admin/configuration/modules/#mod-conversejs). The conversejs client may be accessible at https://XMPP_DOMAIN*:LISTENER_HTTPS_PORT/conversejs | false  |
 | MOD_DISCO_ENABLED  | **mod_disco.yml**  | true  |
 | MOD_FAIL2BAN_ENABLED  | **mod_fail2ban.yml**  | true  |
+| LISTENER_HTTPS_HOST_META_ENABLED  | From ejabberd version `22.05` on. **mod_host_meta.yml** Please note: if mod_conversejs shall be enabled, either HTTPS bosh or websocket must be enabled as well. | true  |
 | LISTENER_HTTPS_API_ENABLED  | **mod_http_api.yml**  | false  |
 | LISTENER_HTTPS_FILESERVER_ENABLED  | **mod_http_fileserver.yml** it is advised to mount own configuration file for HTTP fileserver if desired. Files will be served at https://XMPP_DOMAIN*:LISTENER_HTTPS_PORT/files | false  |
 | LISTENER_HTTPS_UPLOAD_ENABLED  | **mod_http_upload.yml**  | true  |
@@ -452,7 +478,7 @@ Some modules depend on other modules to be anabled. For example, mod_avatar depe
 
 Activation of additional core modules. No configuration file will be generated by the startup script, therefore, they must be mounted into the following path:
 
-`-v /path/to/module/configuration/files:/home/ejabberd/etc/ejabberd/config-modules`
+`-v /path/to/module/configuration/files:/opt/ejabberd/conf`
 
 To activate the module `mod_http_upload_quota`, e.g. the parameter `ADDITIONAL_CORE_MODULE_1_NAME=mod_http_upload_quota` is set and the configfile `mod_http_upload_quota.yml` is mounted.
 
@@ -480,7 +506,7 @@ This would activate two modules with only using one parameter (e.g. `ADDITIONAL_
 
 Furthermore, the startup script can load additional modules from [ejabberd contributions](https://github.com/processone/ejabberd-contrib). No configuration file will be generated by the startup script, therefore, they must be mounted into the following path:
 
-`-v /path/to/module/configuration/files:/home/ejabberd/etc/ejabberd/config-modules`
+`-v /path/to/module/configuration/files:/opt/ejabberd/conf`
 
 To activate the ejabberd contributions module `mod_cron`, e.g. the parameter `INSTALL_ADDITIONAL_NON_CORE_MODULE_1_NAME=mod_cron` is set and the configfile `mod_cron.yml` is mounted.
 
@@ -493,7 +519,7 @@ NOTE: if you use/ mount a custom `ejabberd.yml`, the ejabberd contribution modul
 | INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME  | If parameter is set, then module will be added to the configuration file. To make it function, a module configuration file must be mounted at the mentioned path above with the the following name: `$INSTALL_ADDITIONAL_NON_CORE_MODULE_3_NAME.yml` , e.g. `mod_default_rooms.yml`  |   |
 |   |   |   |
 
-Currently only three additional contributions modules can be added to the script.
+Currently three additional contributions modules can be added to the script.
 
 ## Notes on the image
 

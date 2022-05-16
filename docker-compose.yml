@@ -1,12 +1,20 @@
 version: "3.7"
 
+# secrets: # should be owned by ejabberd user:group (9000:9000)
+#   ldap_bind_pw:
+#     file: /path/to/ldap_bind_pw
+#   db_password:
+#     file: /path/to/db_password
+#   redis_password:
+#     file: /path/to/redis_password
+
 services:
   ejabberd:
     restart: unless-stopped
     hostname: ejabberd
     container_name: ejabberd
-    image: sando38/docker-ejabberd-multiarch
-    user: 999:999
+    image: sando38/docker-ejabberd-multiarch # this compose example works from version 3.0.0 onwards
+    user: 9000:9000
     ports:
       - 80:5280 # http
       # - 3478:3478 # STUN/TURN non-tls
@@ -20,18 +28,26 @@ services:
       # - 49152-49300:49152-49300/udp # TURN range
     env_file:
       - ejabberd.env
-    # environment:
-    #   - ACME_ENABLED=false # default 'auto'
-    volumes: # directories must be own by ejabberd user 999:999
-      - config:/home/ejabberd/etc/ejabberd     # for configuration files
-      - data:/home/ejabberd/var/lib/ejabberd   # mnesia database & acme client certificates
-      - http-files:/home/ejabberd/files        # for HTTP fileserver functionality
-      - http-upload:/home/ejabberd/upload      # for HTTP upload functionality
-      - tls:/home/ejabberd/tls                 # for custom tls certicates
+#     environment:
+#       - LDAP_BIND_PW_FILE=/run/secrets/ldap_bind_pw
+#       - DB_PASSWORD_FILE=/run/secrets/db_password
+#       - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+#     secrets:
+#       - ldap_bind_pw
+#       - db_password
+#       - redis_password
+    volumes: # directories must be own by ejabberd user 9000:9000
+      - config:/opt/ejabberd/conf          # for configuration files
+      - data:/opt/ejabberd/database        # mnesia database & acme client certificates
+      - http-files:/opt/ejabberd/files     # for HTTP fileserver functionality
+      - http-upload:/opt/ejabberd/upload   # for HTTP upload functionality
+      - tls:/opt/ejabberd/tls              # for custom tls certicates
+#       - /path/to/erlang-cookie:/opt/ejabberd/.erlang.cookie
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+#     read_only: true
 
 volumes:
   config:
