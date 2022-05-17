@@ -439,11 +439,11 @@ listen:
     ip: "${LISTENER_STUNTURN_TCP_IP:-::}"
     transport: tcp
     use_turn: ${LISTENER_STUNTURN_TCP_USE_TURN:-false}
-    turn_ipv4_address: ${LISTENER_STUNTURN_TCP_TURN_IP4:-$(getent hosts $HOSTNAME_F | awk '{ print $1 }')} # this should be the public ip address of the node
+    turn_ipv4_address: ${LISTENER_STUNTURN_TCP_TURN_IP4:-$(getent hosts $XMPP_DOMAIN1 | awk '{ print $1 }')} # this should be the public ip address of the node
     turn_min_port: ${LISTENER_STUNTURN_TCP_TURN_MIN_PORT:-49152} # default '49152'
     turn_max_port: ${LISTENER_STUNTURN_TCP_TURN_MAX_PORT:-65535} # default '65535'
     module: ejabberd_stun
-    # use_proxy_protocol: ${LISTENER_STUNTURN_TCP_PROXY_PROTOCOL:-false}
+    use_proxy_protocol: ${LISTENER_STUNTURN_TCP_PROXY_PROTOCOL:-false}
 EOF
 fi
 
@@ -459,7 +459,7 @@ listen:
     ip: "${LISTENER_STUNTURN_UDP_IP:-::}"
     transport: udp
     use_turn: ${LISTENER_STUNTURN_UDP_USE_TURN:-false}
-    turn_ipv4_address: ${LISTENER_STUNTURN_UDP_TURN_IP4:-$(getent hosts $HOSTNAME_F | awk '{ print $1 }')} # this should be the public ip address of the node
+    turn_ipv4_address: ${LISTENER_STUNTURN_UDP_TURN_IP4:-$(getent hosts $XMPP_DOMAIN1 | awk '{ print $1 }')} # this should be the public ip address of the node
     turn_min_port: ${LISTENER_STUNTURN_UDP_TURN_MIN_PORT:-49152} # default '49152'
     turn_max_port: ${LISTENER_STUNTURN_UDP_TURN_MAX_PORT:-65535} # default '65535'
     module: ejabberd_stun
@@ -480,11 +480,11 @@ listen:
     transport: tcp
     tls: true
     use_turn: ${LISTENER_STUNSTURNS_TLS_USE_TURN:-false}
-    turn_ipv4_address: ${LISTENER_STUNSTURNS_TLS_TURN_IP4:-$(getent hosts $HOSTNAME_F | awk '{ print $1 }')} # this should be the public ip address of the node
+    turn_ipv4_address: ${LISTENER_STUNSTURNS_TLS_TURN_IP4:-$(getent hosts $XMPP_DOMAIN1 | awk '{ print $1 }')} # this should be the public ip address of the node
     turn_min_port: ${LISTENER_STUNSTURNS_TLS_TURN_MIN_PORT:-49152} # default '49152'
     turn_max_port: ${LISTENER_STUNSTURNS_TLS_TURN_MAX_PORT:-65535} # default '65535'
     module: ejabberd_stun
-    # use_proxy_protocol: ${LISTENER_STUNSTURNS_TLS_PROXY_PROTOCOL:-false}
+    use_proxy_protocol: ${LISTENER_STUNSTURNS_TLS_PROXY_PROTOCOL:-false}
 EOF
 fi
 

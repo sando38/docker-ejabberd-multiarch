@@ -338,7 +338,7 @@ Please note: STUN-TURN listener does not support HAproxy Protocol as of now (eja
 | **LISTENER_STUNTURN_UDP_PORT**  | Listening port  | 3478  |
 | **LISTENER_STUNTURN_UDP_IP**  | Listening ip  | ::  |
 | **LISTENER_STUNTURN_UDP_USE_TURN**  | Wheter to offer TURN service or not. To enable, set `true`.  | false  |
-| **LISTENER_STUNTURN_UDP_TURN_IP4**  | The public ip address of the host machine  | 10.20.30.40  |
+| **LISTENER_STUNTURN_UDP_TURN_IP4**  | The public ip address of the host machine  | `$(getent hosts $XMPP_DOMAIN1 \| awk '{ print $1 }')`  |
 | **LISTENER_STUNTURN_UDP_TURN_MIN_PORT**  | Minimum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 49152  |
 | **LISTENER_STUNTURN_UDP_TURN_MAX_PORT**  | Maximum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 65535  |
 |   |   |   |
@@ -353,10 +353,10 @@ STUN-TURN via TCP is non-default and should not be considered.
 | **LISTENER_STUNTURN_TCP_PORT**  | Listening port  | 3478  |
 | **LISTENER_STUNTURN_TCP_IP**  | Listening ip  | ::  |
 | **LISTENER_STUNTURN_TCP_USE_TURN**  | Wheter to offer TURN service or not. To enable, set `true`.  | false  |
-| **LISTENER_STUNTURN_TCP_TURN_IP4**  | The public ip address of the host machine  | 10.20.30.40  |
+| **LISTENER_STUNTURN_TCP_TURN_IP4**  | The public ip address of the host machine  | `$(getent hosts $XMPP_DOMAIN1 \| awk '{ print $1 }')`  |
 | **LISTENER_STUNTURN_TCP_TURN_MIN_PORT**  | Minimum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 49152  |
 | **LISTENER_STUNTURN_TCP_TURN_MAX_PORT**  | Maximum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 65535  |
-|   |   |   |
+| **LISTENER_STUNTURN_TCP_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved and STUN discovery is actually possible.  | false  |
 
 ##### STUNS-TURNS (TLS)
 
@@ -368,10 +368,10 @@ STUN-TURN via TLS.
 | **LISTENER_STUNSTURNS_TLS_PORT**  | Listening port  | 5349  |
 | **LISTENER_STUNSTURNS_TLS_IP**  | Listening ip  | ::  |
 | **LISTENER_STUNSTURNS_TLS_USE_TURN**  | Wheter to offer TURN service or not. To enable, set `true`.  | false  |
-| **LISTENER_STUNSTURNS_TLS_TURN_IP4**  | The public ip address of the host machine  | 10.20.30.40  |
+| **LISTENER_STUNSTURNS_TLS_TURN_IP4**  | The public ip address of the host machine  | `$(getent hosts $XMPP_DOMAIN1 \| awk '{ print $1 }')`  |
 | **LISTENER_STUNSTURNS_TLS_TURN_MIN_PORT**  | Minimum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 49152  |
 | **LISTENER_STUNSTURNS_TLS_TURN_MAX_PORT**  | Maximum port range of the TURN services. Note: Please consider the range *smaller* in a docker / kubernetes environment, if you do not use the host network.  | 65535  |
-|   |   |   |
+| **LISTENER_STUNSTURNS_TLS_PROXY_PROTOCOL**  | If ejabberd is behind a layer4 load balancer, this can be set to `true`, if the corresponding load balancer supports HAproxy protocol. Herewith, the real IP addresses of connecting clients are preserved and STUN discovery is actually possible.  | false  |
 
 #### HTTP listener
 
