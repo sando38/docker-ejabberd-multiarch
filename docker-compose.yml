@@ -36,7 +36,7 @@ services:
 #       - ldap_bind_pw
 #       - db_password
 #       - redis_password
-    volumes: # directories must be own by ejabberd user 9000:9000
+    volumes: # directories must be owned by ejabberd user 9000:9000
       - config:/opt/ejabberd/conf          # for configuration files
       - data:/opt/ejabberd/database        # mnesia database & acme client certificates
       - http-files:/opt/ejabberd/files     # for HTTP fileserver functionality
