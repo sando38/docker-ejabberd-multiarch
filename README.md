@@ -85,7 +85,8 @@ The image has several tags. Future tags will potentially support more architectu
 | TAGS  | Description  | Architectures  |
 | ------------ | ------------ | ------------ |
 | latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
-| v22-05-v3.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.0.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
+| v22.05.31-v3.0.0  | inofficial ejabberd tag with some bug fixes, [see github history](https://github.com/processone/ejabberd/tree/5a2e58e06613bea6637559552459f65e8647d89d) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
+| v22.05-v3.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.0.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
 | v21-12-v2.1.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.1.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.1  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.1) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
 | v21-12-v2.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.0.0)  | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
