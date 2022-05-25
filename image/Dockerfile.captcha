@@ -71,9 +71,12 @@ COPY --from=build /opt /opt
 # add packages and remove cache
 RUN apk upgrade --update musl \
     && apk add \
+    bash \
     expat \
     freetds \
     gd \
+    ghostscript-fonts \
+    imagemagick \
     jpeg \
     libgd \
     libpng \

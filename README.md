@@ -78,13 +78,17 @@ Furthermore, the kustomize example assumes a reverse proxy in front of ejabberd.
 
 ## Tags
 
-The image has several tags. Future tags will potentially support more architectures. To go with the newest image, just use the `latest` tag.
+The image has several tags. To go with the newest image, just use the `latest` tag.
 
 `vXX-YY` represents the official ejabberd release, `-vX.Y.Z` is the version of the Docker image, which rises in number, e.g. due to bug fixes, enhancements, etc.
+
+For CAPTCHA, please use the suffix `-captcha` for versions from `v3.1.0` onwards.
 
 | TAGS  | Description  | Architectures  |
 | ------------ | ------------ | ------------ |
 | latest  | Built from master branch, may be unstable  | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
+| v22.05.31-v3.1.0  | inofficial ejabberd tag with some bug fixes, [see github history](https://github.com/processone/ejabberd/tree/5a2e58e06613bea6637559552459f65e8647d89d) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
+| v22.05-v3.1.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.1.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
 | v22.05.31-v3.0.0  | inofficial ejabberd tag with some bug fixes, [see github history](https://github.com/processone/ejabberd/tree/5a2e58e06613bea6637559552459f65e8647d89d) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
 | v22.05-v3.0.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.0.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6  |
 | v21-12-v2.1.0  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-21-12/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v2.1.0) | linux/amd64,linux/386,linux/arm64,linux/arm/v7  |
@@ -420,6 +424,18 @@ More information are [here](https://docs.ejabberd.im/admin/configuration/listen/
 | **LISTENER_MQTT_TLS**  |   | false  |
 |   |   |   |
 
+### CAPTCHA
+
+To enable captcha e.g. for [in-band registration](https://xmpp.org/extensions/xep-0077.html), you need to use the special image tag suffix `-captcha`, e.g. `sando38/docker-ejabberd-multiarch:latest-captcha`.
+
+| Parameter  | Description  | Default  |
+| ------------ | ------------ | ------------ |
+| CAPTCHA_ENABLED  | Setting to `true` enables captcha script and listener. `LISTENER_HTTPS_ENABLED=true` must be set as well to have captcha function. | false  |
+| **CAPTCHA_FILE_PATH**  | You can further include your own captcha script with the following variable `CAPTCHA_FILE_PATH` and mount the file at the respective path, e.g.: `CAPTCHA_FILE_PATH=/opt/ejabberd/conf/captcha.sh` | [/path/to/captcha.sh](https://github.com/processone/ejabberd/blob/master/tools/captcha.sh)  |
+| **CAPTCHA_LIMIT**  | Maximum number of CAPTCHA generated images per minute for any given JID.  | 5 |
+
+Captcha must be specified further in the respective modules.
+
 ### Core modules addressed by the startup script of this image
 
 These is a list of modules addressed by the startup script. For some it may be advised to mount an own configuration script at the following path:
@@ -465,6 +481,7 @@ Some modules depend on other modules to be anabled. For example, mod_avatar depe
 | MOD_PUSH_ENABLED  | **mod_push.yml**  | true  |
 | MOD_PUSH_KEEPALIVE_ENABLED  | **mod_push_keepalive.yml**  | true  |
 | MOD_REGISTER_ENABLED  | **mod_register.yml**  | true  |
+| LISTENER_HTTPS_REGISTER_WEB_ENABLED  | enables [mod_register_web](https://docs.ejabberd.im/admin/configuration/modules/#mod-register-web), `MOD_REGISTER_ENABLED` must be set to `true` as well.  | false  |
 | MOD_ROSTER_ENABLED  | **mod_roster.yml**  | true  |
 | MOD_S2S_DIALBACK_ENABLED  | **mod_s2s_dialback.yml**  | true  |
 | MOD_SHARED_ROSTER_ENABLED  | **mod_shared_roster.yml**  | true  |

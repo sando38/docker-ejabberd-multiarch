@@ -564,6 +564,12 @@ EOF
       "/bosh": mod_bosh
 EOF
   fi
+  # configure captcha
+  if [ "${CAPTCHA_ENABLED:-false}" = true ]; then
+  cat >> $HOME/conf/https.yml <<EOF
+      "/captcha": ejabberd_captcha
+EOF
+  fi
   # configure conversejs
   if [ "${LISTENER_HTTPS_CONVERSEJS_ENABLED:-false}" = true ]; then
   cat >> $HOME/conf/https.yml <<EOF
@@ -574,6 +580,13 @@ EOF
   if [ "${LISTENER_HTTPS_FILESERVER_ENABLED:-false}" = true ]; then
   cat >> $HOME/conf/https.yml <<EOF
       "/files": mod_http_fileserver
+EOF
+  fi
+  # configure module mod_register_web
+  if [ "${LISTENER_HTTPS_REGISTER_WEB_ENABLED:-false}" = true ] \
+     && [ "${MOD_REGISTER_ENABLED:-true}" = true ]; then
+  cat >> $HOME/conf/https.yml <<EOF
+      "/register": mod_register_web
 EOF
   fi
   # configure upload
@@ -804,6 +817,8 @@ access_rules:
     allow: local
   pubsub_createnode:
     allow: local
+  register:
+    - allow
   trusted_network:
     allow: loopback
 
@@ -865,6 +880,20 @@ shaper_rules:
 max_fsm_queue: 10000
 
 EOF
+if [ "${CAPTCHA_ENABLED:-false}" = true ]; then
+  echo ">>> ======================================================================="
+  echo ">>> Configuring CAPTCHA"
+  echo ">>> "
+  cat >> $CONFIGFILE <<EOF;
+###.  =======
+###'  CAPTCHA
+
+captcha_cmd: "${CAPTCHA_FILE_PATH:-$(find /opt/ejabberd-* -name captcha.sh)}"
+captcha_url: https://${XMPP_DOMAIN1:-localhost}:${LISTENER_HTTPS_PORT:-5443}/captcha
+captcha_limit: ${CAPTCHA_LIMIT:-5}
+
+EOF
+fi
 #
 ### modules configuration #############################################
 #
@@ -1400,13 +1429,15 @@ EOF
     cat > $HOME/conf/mod_register.yml <<EOF;
 modules:
   mod_register:
-    ## Only accept registration requests from the "trusted"
-    ## network (see access_rules section above).
-    ## Think twice before enabling registration from any
-    ## address. See the Jabber SPAM Manifesto for details:
-    ## https://github.com/ge0rg/jabber-spam-fighting-manifesto
-    ip_access: trusted_network
+    ip_access: all
+    access: register
+    password_strength: 64
 EOF
+    if [ "${CAPTCHA_ENABLED:-false}" = true ]; then
+      cat >> $HOME/conf/mod_register.yml <<EOF;
+    captcha_protected: true
+EOF
+    fi
   fi
 fi
 #
