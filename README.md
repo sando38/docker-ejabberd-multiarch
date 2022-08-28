@@ -49,23 +49,6 @@ Inspect the running container with
 
 `docker logs < container name >`
 
-## Readonly file system & ERLANG_COOKIE
-
-NOTE: This is only of importance if you want to cluster.
-
-If you want to use a readonly file system (`--read-only`, in compose `read_only: true` or in kubernetes' `securityContext, readOnlyRootFilesystem: true`), the `ERLANG_COOKIE` must be mounted with the correct permissions into the container.
-
-Here is a quick checklist:
-
-* Create cookie with correct read-only permissions (`chmod 0400`) and owner `9000:9000`
-  * `echo "My1-ErlanG2-CookiE3" > /path/to/COOKIE`
-* Mount cookie to: ` -v /path/to/COOKIE:/opt/ejabberd/.erlang.cookie`
-* Optional: Set environment variable `ERLANG_COOKIE` to the same as in the file: i.e. `My1-ErlanG2-CookiE3`. The script will check the existence of `/opt/ejabberd/.erlang.cookie` and try to export `ERLANG_COOKIE` from it.
-
-In this scenario, if only the `ERLANG_COOKIE` variable is used without the mounted cookie, the default cookie will be applied. Clustering still works. Please ensure, that erlang ports are not published to the internet.
-
-For kubernetes an `initContainers` may be used to achieve the correct file permissions (see kustomize example).
-
 ## Kubernetes auto clustering
 
 Starting with `v2.1.0` experimental kubernetes auto clustering is included. The variables `ERLANG_COOKIE` and `KUBERNETES_AUTO_CLUSTER` must be defined for that.
