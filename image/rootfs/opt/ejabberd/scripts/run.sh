@@ -17,7 +17,7 @@ echo ">>> "
 
 # Clustering variables
 #set -m
-EJABBERDCTL=$HOME/scripts/ejabberdctl
+EJABBERDCTL=/usr/local/bin/ejabberdctl
 HOSTNAME_S=$(hostname -s) # ejabberd-0
 HOSTNAME_F=$(hostname -f) # ejabberd-0.ejabberd.default.svc.cluster.local
 HEADLESS_SERVICE="${HOSTNAME_F/$HOSTNAME_S./}" # ejabberd.default.svc.cluster.local
@@ -28,7 +28,7 @@ echo ">>> Set ejabberd node name to $ERLANG_NODE_ARG"
 echo ">>> "
 #sed -i -e "s/ERLANG_NODE_ARG=ejabberd@localhost/ERLANG_NODE_ARG=ejabberd@$(hostname -f)/g" $EJABBERDCTL
 # Set erlang cookie
-#ERLANG_COOKIE=$(openssl rand -hex 40)
+ERLANG_COOKIE=${ERLANG_COOKIE-$(openssl rand -hex 40)}
 if [ -n "$ERLANG_COOKIE" ] && [ ! -f $HOME/.erlang.cookie ]; then
   echo ">>> Generating erlang cookie from ERLANG_COOKIE"
   echo ">>> in case of error the default cookie from installation will be used"
@@ -48,23 +48,6 @@ elif [ -n "$ERLANG_COOKIE" ] && [ -f $HOME/.erlang.cookie ]; then
     export ERLANG_COOKIE=$(cat $HOME/.erlang.cookie)
     echo ">>> "
   fi
-elif [ -z "$ERLANG_COOKIE" ] && [ -f $HOME/.erlang.cookie ]; then
-  echo ">>> Using existing $HOME/.erlang.cookie file"
-  echo ">>> creating ERLANG_COOKIE variable"
-  export ERLANG_COOKIE=$(cat $HOME/.erlang.cookie)
-  echo ">>> "
-elif [ -z "$ERLANG_COOKIE" ]; then
-  echo ">>> Generating random erlang cookie"
-  echo ">>> Clustering will not work"
-  echo ""
-  export ERLANG_COOKIE=$(openssl rand -hex 40)
-  echo $ERLANG_COOKIE > $HOME/.erlang.cookie
-  chmod 400 $HOME/.erlang.cookie
-  echo ""
-  echo ">>> in case of error the default cookie from installation will be used"
-  echo ">>> please consider setting ERLANG_COOKIE, especially if you want to cluster,"
-  echo ">>> and secure erlang ports to restrict access"
-  echo ">>> "
 fi
 #
 ###
@@ -212,8 +195,5 @@ echo ">>>       Launching ejabberd@$(hostname -s) in foreground"
 echo ">>> "
 echo ">>> "
 
-# launching in foreground mode
-$EJABBERDCTL -n $ERLANG_NODE_ARG foreground &
-
-#Wait
-wait $!
+# execute Dockerfile CMD
+exec "$@"

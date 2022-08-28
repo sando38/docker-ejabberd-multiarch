@@ -1,37 +1,44 @@
-FROM alpine:3.15.4 AS build
+FROM alpine:3.16.2 AS build
+# define build arguments
+ARG BUILD_DIR=/ejabberd
+ARG REPOSITORY=https://github.com/processone/ejabberd
 ARG VERSION=master
+ARG HOME=/opt/ejabberd
+# define runtime environment variables
 
-RUN apk upgrade --update musl \
-    && apk add \
-    autoconf \
-    automake \
-    bash \
-    build-base \
-    curl \
-    elixir \
-    erlang-odbc \
-    erlang-reltool \
-    expat-dev \
-    file \
-    gd-dev \
-    git \
-    jpeg-dev \
-    libpng-dev \
-    libwebp-dev \
-    linux-pam-dev \
-    openssl \
-    openssl-dev \
-    sqlite-dev \
-    yaml-dev \
-    zlib-dev
+# copy entrypoint scripts
+COPY rootfs /
+
+WORKDIR $BUILD_DIR
+RUN apk -U upgrade --no-cache --available \
+# add build dependencies
+    && apk add --no-cache -t build-deps \
+        autoconf \
+        automake \
+        bash \
+        build-base \
+        curl \
+        elixir \
+        erlang-odbc \
+        erlang-reltool \
+        expat-dev \
+        file \
+        gd-dev \
+        git \
+        jpeg-dev \
+        libpng-dev \
+        libwebp-dev \
+        linux-pam-dev \
+        openssl \
+        openssl-dev \
+        sqlite-dev \
+        yaml-dev \
+        zlib-dev
 
 RUN mix local.hex --force \
     && mix local.rebar --force
 
-WORKDIR ejabberd
-
-RUN git clone https://github.com/processone/ejabberd.git . \
-    && git checkout $VERSION \
+RUN git clone $REPOSITORY --branch $VERSION --single-branch . \
     && mv .github/container/ejabberdctl.template . \
     && ./autogen.sh \
     && ./configure --with-rebar=mix --enable-all \
@@ -61,61 +68,58 @@ RUN export PEM=/opt/ejabberd/conf/server.pem \
         \ncertfiles: \
         \n  - /opt/ejabberd/conf/server.pem' "/opt/ejabberd/conf/ejabberd.yml"
 
+FROM alpine:3.16.2 AS ejabberd
+ARG HOME=/opt/ejabberd
+
 COPY rootfs /
-
-FROM alpine:3.15.4
-ENV HOME=/opt/ejabberd
-
 COPY --from=build /opt /opt
 
-# add packages and remove cache
-RUN apk upgrade --update musl \
-    && apk add \
-    expat \
-    freetds \
-    gd \
-    jpeg \
-    libgd \
-    libpng \
-    libstdc++ \
-    libwebp \
-    linux-pam \
-    ncurses-libs \
-    openssl \
-    sqlite \
-    sqlite-libs \
-    unixodbc \
-    yaml \
-    zlib \
+# add/define runtime packages
+RUN apk add --no-cache -t ejabberd-runtime \
+        expat \
+        freetds \
+        gd \
+        jpeg \
+        libgd \
+        libpng \
+        libstdc++ \
+        libwebp \
+        linux-pam \
+        ncurses-libs \
+        openssl \
+        sqlite \
+        sqlite-libs \
+        tini \
+        unixodbc \
+        yaml \
+        zlib \
+#    && apk add --no-cache -t ejabberd-captcha \
+#        bash \
+#        ghostscript-fonts \
+#        imagemagick \
     && ln -fs /usr/lib/libtdsodbc.so.0 /usr/lib/libtdsodbc.so \
-    && rm -rf /var/cache/apk/* \
 # user and directories
     && addgroup ejabberd -g 9000 \
-    && adduser -s /bin/sh -D -G ejabberd ejabberd -u 9000 \
+    && adduser -s /bin/sh -D -G ejabberd -h $HOME ejabberd -u 9000 \
     && mkdir -p $HOME/conf $HOME/database $HOME/logs $HOME/upload $HOME/files $HOME/tls $HOME/.ejabberd-modules \
 # ejabberdctl link, scripts and configuration files
-    && mv $HOME/scripts/* /usr/local/bin \
+#    && mv $HOME/scripts/* /usr/local/bin \
     && echo -e \
-         "#!/bin/sh \
-        \n[ -z \$ERLANG_NODE_ARG ] && export ERLANG_NODE_ARG=ejabberd@localhost \
+         '#!/bin/sh \
+        \nexport HOSTNAME_F=$(hostname -f) \
+        \nexport ERLANG_NODE_ARG="ejabberd@$HOSTNAME_F" \
         \nexport CONFIG_DIR=/opt/ejabberd/conf \
         \nexport LOGS_DIR=/opt/ejabberd/logs \
         \nexport SPOOL_DIR=/opt/ejabberd/database \
-        \nexec $(find /opt -name ejabberdctl) \"\$@\"" > $HOME/scripts/ejabberdctl \
-    && chmod +x /usr/local/bin/* /opt/ejabberd/scripts/* \
+        \nexec $(find /opt -name ejabberdctl) -n $ERLANG_NODE_ARG "$@"' > /usr/local/bin/ejabberdctl \
+    && chmod +x /usr/local/bin/* \
     && mv $HOME/conf/ejabberd.yml $HOME/conf/ejabberd.yml.template \
     && chown -R ejabberd:ejabberd $HOME
 
-HEALTHCHECK \
-    --interval=5s \
-    --timeout=5s \
-    --start-period=5s \
-    --retries=120 \
-    CMD /opt/ejabberd/scripts/ejabberdctl status
-
 WORKDIR $HOME
 USER ejabberd
-VOLUME ["$HOME/conf", "$HOME/database", "$HOME/logs", "$HOME/upload", "$HOME/files", "$HOME/tls", "$HOME/.ejabberd-modules"]
+VOLUME ["$HOME"]
 EXPOSE 1883 4369-4399 5222 5269 5280 5443
 
-CMD ["/usr/local/bin/run.sh"]
+ENTRYPOINT ["/sbin/tini","--","run.sh"]
+CMD ["ejabberdctl","foreground"]
