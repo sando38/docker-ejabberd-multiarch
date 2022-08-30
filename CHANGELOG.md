@@ -1,8 +1,9 @@
-### unreleased
+### v3.1.1
 
 #### Changes
 * fix non-working eturnalctl invocations
 * erlang cookie does not need to be mounted anymore when running in readonly mode
+* include github actions to build release
 
 ### v3.1.0
 
