@@ -27,21 +27,23 @@ In the current setup, the image provides a default ejabberd configuration file, 
 
 To pull the image, just refer to the Docker Hub repository:
 
-`docker pull sando38/docker-ejabberd-multiarch`
+    docker pull sando38/docker-ejabberd-multiarch
 
 The image will run in ejabberd foreground mode, if started this way:
 
-`docker run -d sando38/docker-ejabberd-multiarch --name ejabberd`
+    docker run --rm -d --name ejabberd -p 5222:5222 -p 5443:5443 sando38/docker-ejabberd-multiarch
 
-The image can also run in a less "privileged" mode:
+The image can also run in an unprivileged mode:
 
 ```
-docker run -d \
+docker run --rm -d \
   --name ejabberd \
   --user 9000:9000 \
   --security-opt no-new-privileges \
   --cap-drop=ALL \
   --read-only \
+  -p 5222:5222 \
+  -p 5443:5443 \
   sando38/docker-ejabberd-multiarch
 ```
 
@@ -51,7 +53,7 @@ Inspect the running container with
 
 ## Kubernetes auto clustering
 
-Starting with `v2.1.0` experimental kubernetes auto clustering is included. The variables `ERLANG_COOKIE` and `KUBERNETES_AUTO_CLUSTER` must be defined for that.
+The image has experimental kubernetes auto clustering support. The variables `ERLANG_COOKIE` and `KUBERNETES_AUTO_CLUSTER` must be defined for that.
 
 Furthermore, this feature needs a statefulset combined with a headless service to function. A `kustomize` configuration example is provided in this repository. A helm chart may follow in the near future.
 
@@ -60,8 +62,6 @@ The kustomize example is not ready to use and must be adjusted to your needs, i.
 Furthermore, the kustomize example assumes a reverse proxy in front of ejabberd. The example provides traefik proxy services. This also needs to be adjusted to your needs.
 
 ## Tags
-
-The image has several tags. To go with the newest image, just use the `latest` tag.
 
 `XX-YY` represents the official ejabberd release, `-vX.Y.Z` is the version of the Docker image, which rises in number, e.g. due to bug fixes, enhancements, etc.
 
@@ -102,7 +102,7 @@ To trigger the startup script, at least the file `ejabberd.yml` must be deleted/
 
 ## Parameters to configure ejabberd
 
-If default column is empty, then there is no default.
+If the default column is empty, then there is no default.
 
 Parameters in **bold** can be adjusted according to [ejabberd docs](https://docs.ejabberd.im/admin/configuration/ "ejabberd docs"). The Parameters may have a slightly different naming.
 
@@ -160,7 +160,7 @@ Note: `DB_PASSWORD` may be also mounted as docker secret with `_FILE` (see docke
 
 #### REDIS settings
 
-Redis must be defined either, if DEFAULT_RAM_DB=redis or REDIS_ENABLED=true.
+Redis must be defined either, if `DEFAULT_RAM_DB=redis` or `REDIS_ENABLED=true`.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
@@ -178,18 +178,18 @@ Note: `REDIS_PASSWORD` may be also mounted as docker secret with `_FILE` (see do
 
 ### Authentication
 
-Currently only mnesia, sql, ldap or anonymous are supported by the configuration script of this image.
+Currently only `mnesia`, `sql`, `ldap` or `anonymous` are supported by the configuration script of this image.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
-| **AUTH_METHOD**  | Currently supported by this image are `mnesia, sql, ldap, anonymous`  | mnesia  |
+| **AUTH_METHOD**  | Currently supported by this image are `mnesia`, `sql`, `ldap` or `anonymous`  | mnesia  |
 | **AUTH_PASSWORD_FORMAT**  | only valid/ applied if AUTH_METHOD is `mnesia` or `sql`, options are: `scram` or `plain`  | scram  |
 | **AUTH_SCRAM_HASH**  | hash of scram if AUTH_PASSWORD_FORMAT=scram. Options are `sha`, `sha256`, `sha512`  | sha256  |
 |   |   |   |
 
 #### LDAP authentication
 
-These variables only take effect if AUTH_METHOD=ldap. See also [ejabberd docs](https://docs.ejabberd.im/admin/configuration/ldap/) for further explanations.
+These variables only take effect if `AUTH_METHOD=ldap`. See also [ejabberd docs](https://docs.ejabberd.im/admin/configuration/ldap/) for further explanations.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
@@ -219,7 +219,7 @@ Note: `LDAP_BIND_PW` may be also mounted as docker secret with `_FILE` (see dock
 
 ### SSL/TLS settings
 
-TLS certificates if not recieved by internal ACME client need to be mounted in to the following directory as `*.pem` files:
+TLS certificates if not recieved by the internal ACME client need to be mounted into the following directory as `*.pem` files:
 
 `-v /path/to/certfiles:/opt/ejabberd/tls`
 
