@@ -1,3 +1,8 @@
+### v3.1.2
+
+#### Changes
+* fix #1 which prevents the container to startup.
+
 ### v3.1.1
 
 #### Changes

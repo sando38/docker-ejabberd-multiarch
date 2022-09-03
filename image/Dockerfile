@@ -74,8 +74,9 @@ ARG HOME=/opt/ejabberd
 COPY rootfs /
 COPY --from=build /opt /opt
 
+RUN apk -U upgrade --available --no-cache \
 # add/define runtime packages
-RUN apk add --no-cache -t ejabberd-runtime \
+   && apk add --no-cache -t ejabberd-runtime \
         expat \
         freetds \
         gd \
@@ -103,7 +104,6 @@ RUN apk add --no-cache -t ejabberd-runtime \
     && adduser -s /bin/sh -D -G ejabberd -h $HOME ejabberd -u 9000 \
     && mkdir -p $HOME/conf $HOME/database $HOME/logs $HOME/upload $HOME/files $HOME/tls $HOME/.ejabberd-modules \
 # ejabberdctl link, scripts and configuration files
-#    && mv $HOME/scripts/* /usr/local/bin \
     && echo -e \
          '#!/bin/sh \
         \nexport HOSTNAME_F=$(hostname -f) \
