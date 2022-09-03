@@ -69,8 +69,8 @@ For CAPTCHA, please use the suffix `-captcha`.
 
 | TAGS  | Description  | Additional notes  |
 | ------------ | ------------ | ------------ |
-| `latest`, `22.05-v3.1.1`  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.1.1) |  |
-| `latest-captcha`, `22.05-v3.1.1-captcha`  | like above | plus additional packages `bash ghostscript-fonts imagemagick` needed for CAPTCHA  |
+| `latest`, `22.05-v3.1.2`  | [offical ejabberd release notes](https://www.process-one.net/blog/ejabberd-22-05/), changes see [image release notes](https://github.com/sando38/docker-ejabberd-multiarch/releases/tag/v3.1.2) |  |
+| `latest-captcha`, `22.05-v3.1.2-captcha`  | like above | plus additional packages `bash ghostscript-fonts imagemagick` needed for CAPTCHA  |
 
 ## Configure the image
 
