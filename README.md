@@ -280,7 +280,7 @@ For legacy TLS connections. This may be interesting also to map via port 443, ei
 
 #### Server to Server connections (TCP / STARTTLS)
 
-For legacy TLS connections. This may be interesting also to map via port 443, either behind a load balancer or directly with e.g. an iptables rule, since ejabberd cannot listen to 443 (privileged ports) directly.
+For XMPP federation with other XMPP servers. It supports plain TCP or STARTTLS.
 
 | Parameter  | Description  | Default  |
 | ------------ | ------------ | ------------ |
