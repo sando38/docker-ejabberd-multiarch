@@ -1,3 +1,8 @@
+### v3.1.3
+
+#### Changes
+* fix #2 duplicated variable in setup script.
+
 ### v3.1.2
 
 #### Changes
