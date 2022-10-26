@@ -43,11 +43,6 @@ cat >> $CONFIGFILE <<EOF;
   - $XMPP_DOMAIN3
 EOF
 fi
-if [ ! -z $XMPP_DOMAIN3 ]; then
-cat >> $CONFIGFILE <<EOF;
-  - $XMPP_DOMAIN3
-EOF
-fi
 
 # general parameters
 cat >> $CONFIGFILE <<EOF;
