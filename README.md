@@ -1,3 +1,7 @@
+Note: This repository is archived as the official ejabberd image has been further reworked (from security and usabilty point of view), so that from the author's perspective, this image is not further needed. Feel free to fork this repo and further improve the image.
+
+Thanks for using!
+
 # Docker image for ejabberd xmpp server
 
 This is a multi-arch [ejabberd](https://docs.ejabberd.im/ "ejabberd") docker image, currently built for
